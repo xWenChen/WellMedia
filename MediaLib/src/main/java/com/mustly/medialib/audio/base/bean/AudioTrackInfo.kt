@@ -1,0 +1,10 @@
+package com.mustly.medialib.audio.base.bean
+
+import com.mustly.medialib.base.MediaType
+import com.mustly.medialib.base.bean.MediaTrackInfo
+
+class AudioTrackInfo : MediaTrackInfo() {
+    override var mediaType: MediaType = MediaType.AUDIO
+        get() = MediaType.AUDIO
+        set(value) {field = MediaType.AUDIO}
+}
