@@ -4,9 +4,11 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/code/WellMedia/app/src/main/res/drawable/bg_nav_header.xml" value="0.1575" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_app_icon.xml" value="0.1575" />
         <entry key="..\:/code/WellMedia/app/src/main/res/layout/activity_function.xml" value="1.0394736842105263" />
         <entry key="..\:/code/WellMedia/app/src/main/res/layout/activity_main.xml" value="0.286231884057971" />
         <entry key="..\:/code/WellMedia/app/src/main/res/menu/navigation_menu.xml" value="0.17083333333333334" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.122" />
       </map>
     </option>
   </component>
