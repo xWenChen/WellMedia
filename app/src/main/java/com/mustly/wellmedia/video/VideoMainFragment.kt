@@ -37,7 +37,7 @@ class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
                 iv.setImageResource(data.iconResId)
                 tv.setText(data.textRes)
                 holderRootView.setOnClickListener {
-
+                    startFunctionActivity(data.tag)
                 }
             }
             .refresh()
@@ -45,9 +45,16 @@ class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
 
     private fun getFuncList(): MutableList<ItemBean> {
         return mutableListOf(
-            // TODO 定义选项
-            ItemBean(R.drawable.ic_audio_play, R.string.audio_play, FragmentConstant.Tag.TAG_AUDIO_PLAY_FRAGMENT),
-            ItemBean(R.drawable.ic_audio_record, R.string.audio_record, FragmentConstant.Tag.TAG_AUDIO_RECORD_FRAGMENT)
+            ItemBean(
+                R.drawable.ic_video_play_1,
+                R.string.video_view_play,
+                FragmentConstant.Tag.TAG_VIDEO_VIEW_PLAY
+            ),
+            ItemBean(
+                R.drawable.ic_audio_record,
+                R.string.audio_record,
+                FragmentConstant.Tag.TAG_AUDIO_RECORD_FRAGMENT
+            )
         )
     }
 }

@@ -2,6 +2,7 @@ package com.mustly.wellmedia.base
 
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import com.mustly.wellmedia.R

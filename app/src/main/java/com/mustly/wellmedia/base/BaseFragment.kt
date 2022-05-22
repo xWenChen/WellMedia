@@ -7,11 +7,14 @@ import android.view.InflateException
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.Lifecycle
+import com.mustly.wellmedia.utils.checkAndRequestPermission
 
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
@@ -32,10 +35,18 @@ abstract class BaseFragment(@LayoutRes layoutResId: Int) : Fragment(layoutResId)
         return view
     }
 
-    fun startFunctionActivity(@FragmentConstant.Tag tag: String) {
+    fun startFunctionActivity(
+        @FragmentConstant.Tag tag: String,
+        dataSetCallback: (Bundle.() -> Unit)? = null
+    ) {
         startActivity(Intent(activity, FunctionActivity::class.java), Bundle().apply {
             putString(FragmentConstant.Key.KEY_FRAGMENT_TAG, tag)
+            dataSetCallback?.invoke(this)
         })
+    }
+
+    fun checkAndRequestPermission(permission: String, callback: ((Boolean) -> Unit)) {
+        activity?.checkAndRequestPermission(permission, callback)
     }
 
     /**

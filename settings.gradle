@@ -15,4 +15,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "WellMedia"
 include ':app'
-include ':MediaLib'
+include ':processor'
+include ':medialib'
+include ':commonlib'
+include ':annotation'

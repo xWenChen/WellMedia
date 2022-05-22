@@ -6,6 +6,7 @@ import com.mustly.wellmedia.audio.AudioMainFragment
 import com.mustly.wellmedia.audio.AudioPlayFragment
 import com.mustly.wellmedia.image.ImageMainFragment
 import com.mustly.wellmedia.video.VideoMainFragment
+import com.mustly.wellmedia.video.VideoViewPlayFragment
 import java.lang.IllegalArgumentException
 
 /**
@@ -16,11 +17,13 @@ object MediaFragmentFactory : FragmentFactory() {
      * 项目中已定义的 Fragment 的集合，所有 Fragment 必须在此处注册
      * */
     private var usefulFragments = HashMap<String, Class<out BaseFragment>>().apply {
-        this[FragmentConstant.Tag.TAG_AUDIO_MAIN_FRAGMENT] = AudioMainFragment::class.java
-        this[FragmentConstant.Tag.TAG_AUDIO_PLAY_FRAGMENT] = AudioPlayFragment::class.java
+        this[FragmentConstant.Tag.AUDIO_MAIN_FRAGMENT] = AudioMainFragment::class.java
+        this[FragmentConstant.Tag.AUDIO_PLAY_FRAGMENT] = AudioPlayFragment::class.java
 
-        this[FragmentConstant.Tag.TAG_VIDEO_MAIN_FRAGMENT] = VideoMainFragment::class.java
-        this[FragmentConstant.Tag.TAG_IMAGE_MAIN_FRAGMENT] = ImageMainFragment::class.java
+        this[FragmentConstant.Tag.VIDEO_MAIN_FRAGMENT] = VideoMainFragment::class.java
+        this[FragmentConstant.Tag.VIDEO_VIEW_PLAY] = VideoViewPlayFragment::class.java
+
+        this[FragmentConstant.Tag.IMAGE_MAIN_FRAGMENT] = ImageMainFragment::class.java
     }
 
     fun findClassByTag(tag: String): Class<out BaseFragment> {
@@ -42,22 +45,19 @@ object MediaFragmentFactory : FragmentFactory() {
     }
 }
 
-object FragmentConstant {
-    annotation class Tag {
-        companion object {
-            const val TAG_AUDIO_MAIN_FRAGMENT = "tag_audio_main_fragment"
-            const val TAG_AUDIO_PLAY_FRAGMENT = "tag_audio_play_fragment"
-            const val TAG_AUDIO_RECORD_FRAGMENT = "tag_audio_record_fragment"
+object PageRoute {
+    const val AUDIO_MAIN_FRAGMENT = "audio_main_fragment"
+    const val AUDIO_PLAY_FRAGMENT = "audio_play_fragment"
+    const val AUDIO_RECORD_FRAGMENT = "audio_record_fragment"
 
-            const val TAG_VIDEO_MAIN_FRAGMENT = "tag_video_main_fragment"
-            const val TAG_IMAGE_MAIN_FRAGMENT = "tag_image_main_fragment"
-        }
-    }
+    const val VIDEO_MAIN_FRAGMENT = "video_main_fragment"
+    // VideoView 播放视频
+    const val VIDEO_VIEW_PLAY = "video_view_play"
 
-    annotation class Key {
-        companion object {
-            const val KEY_FRAGMENT_TAG = "key_fragment_tag"
-        }
+    const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
+
+    object Param {
+        const val KEY_FRAGMENT_TAG = "key_fragment_tag"
     }
 }
 

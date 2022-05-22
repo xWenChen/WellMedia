@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="11" />
+    <bytecodeTargetLevel target="1.7">
+      <module name="WellMedia.app" target="11" />
+      <module name="WellMedia.commonlib" target="11" />
+      <module name="WellMedia.medialib" target="11" />
+      <module name="WellMedia.processor" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

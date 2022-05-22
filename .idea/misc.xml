@@ -5,14 +5,21 @@
       <map>
         <entry key="..\:/code/WellMedia/app/src/main/res/drawable/bg_nav_header.xml" value="0.1575" />
         <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_app_icon.xml" value="0.1575" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_audio.xml" value="0.1575" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_audio_play.xml" value="0.1575" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_audio_record.xml" value="0.1575" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/drawable/ic_video_play_1.xml" value="0.1575" />
         <entry key="..\:/code/WellMedia/app/src/main/res/layout/activity_function.xml" value="1.0394736842105263" />
         <entry key="..\:/code/WellMedia/app/src/main/res/layout/activity_main.xml" value="0.286231884057971" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/layout/fragment_audio_play.xml" value="0.286231884057971" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/layout/fragment_video_main.xml" value="0.16869300911854104" />
+        <entry key="..\:/code/WellMedia/app/src/main/res/layout/fragment_video_view_play.xml" value="0.286231884057971" />
         <entry key="..\:/code/WellMedia/app/src/main/res/menu/navigation_menu.xml" value="0.17083333333333334" />
         <entry key="..\:/code/WellMedia/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.122" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_7" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
