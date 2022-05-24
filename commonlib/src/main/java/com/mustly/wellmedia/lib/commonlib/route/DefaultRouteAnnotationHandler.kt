@@ -3,7 +3,7 @@ package com.mustly.wellmedia.lib.commonlib.route
 import android.content.Context
 import android.content.Intent
 
-class DefaultRouteAnnotationHandler : RouteAnnotationHandler {
+class DefaultRouteAnnotationHandler : RouteHub {
 
     val routeMap = HashMap<String, String>()
 

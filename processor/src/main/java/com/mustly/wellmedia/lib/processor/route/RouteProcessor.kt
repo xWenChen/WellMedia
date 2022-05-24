@@ -2,13 +2,15 @@ package com.mustly.wellmedia.lib.processor.route
 
 import com.google.auto.service.AutoService
 import com.mustly.wellmedia.lib.annotation.Route
-import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
+import kotlin.reflect.KClass
 
 @AutoService(Processor::class)
 class RouteProcessor : AbstractProcessor() {
@@ -17,81 +19,148 @@ class RouteProcessor : AbstractProcessor() {
         const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
     }
 
+    private var moduleName = Constants.DEFAULT_MODULE_NAME
+
     private val logger by lazy { ProcessorLogger(processingEnv) }
-
-    override fun init(processingEnv: ProcessingEnvironment?) {
-        super.init(processingEnv)
-
-        if (processingEnv == null) {
-            return
-        }
-    }
-
-    override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment?): Boolean {
-        if (annotations.isNullOrEmpty()) {
-            // 我们自定义的注解处理器不再执行
-            return false
-        }
-        // 检查处理器是否能够找到必要的文件夹并将文件写入其中
-        val kaptKotlinGeneratedDir = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME] ?: return false
-
-        // 收集所有路由的信息，统一起来
-        val codeBuilder = CodeBlock.Builder()
-
-        // 加一个随机的UUID，防止多个模块之间生成的文件重复
-        val fileName = "AnnotationInit" + "_" + UUID.randomUUID().toString().replace("-", "")
-
-        // element 是用 Route 注解标注的元素，如 Activity 或 Fragment
-        roundEnv?.getElementsAnnotatedWith(Route::class.java)?.forEach { element ->
-            if (!validateRoute(element)) {
-                return false
-            }
-
-            val annotation = element.getAnnotation(Route::class.java)
-
-            val url = annotation.url
-            // Activity 或 Fragment 名
-            val className = element.simpleName.toString()
-            // 生成目标 Activity 或 Fragment 的全限定名称，例如：com.mustly.wellmedia.MainActivity
-            val packageName = processingEnv.elementUtils.getPackageOf(element).toString()
-            val target = "$packageName.$className"
-            // 插入代码语句，注册路由
-            codeBuilder.addStatement("handler.register(%S, %S)", url, target)
-        }
-
-        RouteCodeBuilder(kaptKotlinGeneratedDir, fileName, codeBuilder.build()).buildFile()
-        return true
-    }
 
     override fun getSupportedAnnotationTypes(): MutableSet<String> {
         return mutableSetOf(Route::class.java.canonicalName)
+    }
+
+    override fun getSupportedOptions(): MutableSet<String> {
+        return mutableSetOf(Constants.OPTION_MODULE_NAME)
     }
 
     override fun getSupportedSourceVersion(): SourceVersion {
         return SourceVersion.latestSupported()
     }
 
-    // 检查 @Route 注解是否 OK
-    private fun validateRoute(element: Element): Boolean {
-        val activity = processingEnv.elementUtils.getTypeElement("android.app.Activity").asType()
-        val fragment = processingEnv.elementUtils.getTypeElement("android.app.Fragment").asType()
-        val androidXFragment = processingEnv.elementUtils.getTypeElement("androidx.fragment.app.Fragment").asType()
-        (element as? TypeElement)?.let {
-            // 检测 Activity
-            if (!processingEnv.typeUtils.isSubtype(it.asType(), activity)
-                && !processingEnv.typeUtils.isSubtype(it.asType(), fragment)
-                && !processingEnv.typeUtils.isSubtype(it.asType(), androidXFragment)
-            ) {
-                logger.e("Route 只能标注 Activity 和 Fragment", element)
-                return false
-            }
+    override fun init(processingEnv: ProcessingEnvironment?) {
+        super.init(processingEnv)
 
-            if (Modifier.ABSTRACT in it.modifiers) {
-                logger.e("Route 标注的元素不可以是抽象类", element)
-                return false
-            }
+        parseModuleName()
+    }
 
+    override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment?): Boolean {
+
+        val elements = roundEnv?.getElementsAnnotatedWith(Route::class.java)
+
+        if (moduleName.isEmpty() || elements.isNullOrEmpty()) {
+            // 我们自定义的注解处理器不再执行
             return true
-        } ?: return false
+        }
+
+        // 合法的TypeElement集合
+        val typeElements = elements.filter {
+            it.kind.isClass && validateRoute(it)
+        }.map {
+            it as TypeElement
+        }
+
+        generateRouteTable(typeElements)
+
+        return true
+    }
+
+    private fun parseModuleName() {
+        var tempName = processingEnv?.options?.get(Constants.OPTION_MODULE_NAME)
+
+        if (tempName.isNullOrEmpty()) {
+            tempName = Constants.DEFAULT_MODULE_NAME
+        }
+
+        moduleName = tempName
+            .replace(".", "_")
+            .replace("-", "_")
+            .replace(" ", "_")
+            .replaceFirstChar {
+                // 首字母大写
+                if (it.isLowerCase()) {
+                    it.titlecase(Locale.getDefault())
+                } else {
+                    it.toString()
+                }
+            }
+    }
+
+    private fun generateRouteTable(typeElements: List<TypeElement>) {
+        // 生成方法的参数类型：Map<String, KClass<*>>
+        val mapTypeName = Map::class.asClassName().parameterizedBy(
+            String::class.asClassName(),
+            KClass::class.asClassName().parameterizedBy(
+                WildcardTypeName.producerOf(Any::class)
+            )
+        )
+
+        val mapParamSpec = ParameterSpec.builder("map", mapTypeName).build()
+
+        // override public fun register(map: Map<String, KClass<*>>)
+        val funcRegister = FunSpec.builder(Constants.METHOD_REGISTER)
+            .addModifiers(KModifier.OVERRIDE)
+            .addModifiers(KModifier.PUBLIC)
+            .addParameter(mapParamSpec)
+            .returns(UNIT)
+
+        // 缓存，防止重复的路由
+        val pathRecorder = hashMapOf<String, String>()
+
+        // qualifiedName 全限定名
+        typeElements.forEach {
+            val route = it.getAnnotation(Route::class.java)
+            val path = route.url
+            // 路由重复
+            if (pathRecorder.containsKey(path)) {
+                throw RuntimeException("Duplicate route path: ${path}[${it.qualifiedName}, ${pathRecorder[path]}]")
+            }
+            funcRegister.addStatement("map[%S] = %T::class", path, it.asClassName())
+            pathRecorder[path] = it.qualifiedName.toString()
+        }
+
+        processingEnv?.elementUtils?.getTypeElement(
+            Constants.ROUTE_REGISTER_FULL_NAME
+        )?.let { superInterfaceType ->
+            TypeSpec.classBuilder("$moduleName${Constants.ROUTE_REGISTER}")
+                .addSuperinterface(superInterfaceType.asClassName())
+                .addModifiers(KModifier.PUBLIC)
+                .addFunction(funcRegister.build())
+                .addKdoc(Constants.CLASS_DOC)
+                .build()
+        }?.also { type ->
+            try {
+                processingEnv?.filer?.apply {
+                    FileSpec.get(
+                        Constants.ROUTE_HUB_PACKAGE_NAME,
+                        type
+                    ).writeTo(this)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // 检查 @Route 注解是否 OK
+    private fun validateRoute(element: Element?): Boolean {
+        if (!isSubtype(element, Constants.ACTIVITY_FULL_NAME)
+            && !isSubtype(element, Constants.FRAGMENT_FULL_NAME)
+            && !isSubtype(element, Constants.FRAGMENT_X_FULL_NAME)
+        ) {
+            return false
+        }
+
+        if (Modifier.ABSTRACT in element?.modifiers ?: emptySet()) {
+            return false
+        }
+
+        return true
+    }
+
+    private fun isSubtype(typeElement: Element?, type: String): Boolean {
+        return processingEnv?.run {
+            typeUtils.isSubtype(
+                typeElement?.asType(),
+                elementUtils.getTypeElement(type).asType()
+            )
+        } ?: false
     }
 }

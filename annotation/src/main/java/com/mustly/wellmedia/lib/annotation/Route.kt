@@ -6,5 +6,5 @@ package com.mustly.wellmedia.lib.annotation
  * @param url 页面的路由地址
  * */
 @Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.SOURCE)
+@Retention(AnnotationRetention.BINARY)
 annotation class Route(val url: String = "")
