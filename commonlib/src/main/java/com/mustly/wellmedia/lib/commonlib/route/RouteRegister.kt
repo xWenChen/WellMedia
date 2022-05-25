@@ -1,7 +1,8 @@
 package com.mustly.wellmedia.lib.commonlib.route
 
-import kotlin.reflect.KClass
-
 interface RouteRegister {
-    fun register(map: Map<String, KClass<*>>)
+    /**
+     * 注册路由，代码自动生成。对应的注解处理器：RouteProcessor
+     * */
+    fun register(map: Map<String, String>)
 }

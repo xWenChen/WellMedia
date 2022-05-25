@@ -1,13 +1,19 @@
 package com.mustly.wellmedia.lib.commonlib.route
 
 import android.content.Context
+import android.content.Intent
 
 object Router {
-    private var handler: RouteHub = DefaultRouteAnnotationHandler()
-
     fun go(context: Context, url :String) {
-        handler.startUrl(context, url)
+        val className = RouteHub.routeTable[url] ?: ""
+        context.startActivity(
+            getIntent(context, className).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
     }
 
-    fun getIntent(context: Context, className: String) = handler.getIntent(context, className)
+    fun getIntent(context: Context, className: String): Intent {
+        return Intent().setClassName(context, className)
+    }
 }

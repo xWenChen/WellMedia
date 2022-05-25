@@ -1,10 +1,11 @@
 package com.mustly.wellmedia.lib.processor.route
 
 import com.google.auto.service.AutoService
+import com.mustly.wellmedia.lib.annotation.Constants
 import com.mustly.wellmedia.lib.annotation.Route
+import com.mustly.wellmedia.lib.annotation.Utils
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
@@ -38,7 +39,7 @@ class RouteProcessor : AbstractProcessor() {
     override fun init(processingEnv: ProcessingEnvironment?) {
         super.init(processingEnv)
 
-        parseModuleName()
+        moduleName = Utils.parseModuleName(processingEnv?.options?.get(Constants.OPTION_MODULE_NAME))
     }
 
     override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment?): Boolean {
@@ -62,27 +63,6 @@ class RouteProcessor : AbstractProcessor() {
         return true
     }
 
-    private fun parseModuleName() {
-        var tempName = processingEnv?.options?.get(Constants.OPTION_MODULE_NAME)
-
-        if (tempName.isNullOrEmpty()) {
-            tempName = Constants.DEFAULT_MODULE_NAME
-        }
-
-        moduleName = tempName
-            .replace(".", "_")
-            .replace("-", "_")
-            .replace(" ", "_")
-            .replaceFirstChar {
-                // 首字母大写
-                if (it.isLowerCase()) {
-                    it.titlecase(Locale.getDefault())
-                } else {
-                    it.toString()
-                }
-            }
-    }
-
     private fun generateRouteTable(typeElements: List<TypeElement>) {
         // 生成方法的参数类型：Map<String, KClass<*>>
         val mapTypeName = Map::class.asClassName().parameterizedBy(
@@ -92,8 +72,10 @@ class RouteProcessor : AbstractProcessor() {
             )
         )
 
+        // 生成 map 参数
         val mapParamSpec = ParameterSpec.builder("map", mapTypeName).build()
 
+        // map 参数添加到 register 方法中
         // override public fun register(map: Map<String, KClass<*>>)
         val funcRegister = FunSpec.builder(Constants.METHOD_REGISTER)
             .addModifiers(KModifier.OVERRIDE)
@@ -104,6 +86,7 @@ class RouteProcessor : AbstractProcessor() {
         // 缓存，防止重复的路由
         val pathRecorder = hashMapOf<String, String>()
 
+        // 根据注解生成方法体
         // qualifiedName 全限定名
         typeElements.forEach {
             val route = it.getAnnotation(Route::class.java)
@@ -112,14 +95,15 @@ class RouteProcessor : AbstractProcessor() {
             if (pathRecorder.containsKey(path)) {
                 throw RuntimeException("Duplicate route path: ${path}[${it.qualifiedName}, ${pathRecorder[path]}]")
             }
-            funcRegister.addStatement("map[%S] = %T::class", path, it.asClassName())
+            funcRegister.addStatement("map[%S] = \"%T\"", path, it.asClassName().canonicalName)
             pathRecorder[path] = it.qualifiedName.toString()
         }
 
+        // 方法内容添加到类中
         processingEnv?.elementUtils?.getTypeElement(
-            Constants.ROUTE_REGISTER_FULL_NAME
+            Constants.ROUTE_REGISTER_INTERFACE_NAME
         )?.let { superInterfaceType ->
-            TypeSpec.classBuilder("$moduleName${Constants.ROUTE_REGISTER}")
+            TypeSpec.classBuilder(Utils.getRegisterClassName(moduleName))
                 .addSuperinterface(superInterfaceType.asClassName())
                 .addModifiers(KModifier.PUBLIC)
                 .addFunction(funcRegister.build())
@@ -127,9 +111,10 @@ class RouteProcessor : AbstractProcessor() {
                 .build()
         }?.also { type ->
             try {
+                // 类写入文件
                 processingEnv?.filer?.apply {
                     FileSpec.get(
-                        Constants.ROUTE_HUB_PACKAGE_NAME,
+                        Constants.GENERATED_ROUTE_REGISTER_PATH,
                         type
                     ).writeTo(this)
                 }
@@ -148,7 +133,7 @@ class RouteProcessor : AbstractProcessor() {
             return false
         }
 
-        if (Modifier.ABSTRACT in element?.modifiers ?: emptySet()) {
+        if (Modifier.ABSTRACT in (element?.modifiers ?: emptySet())) {
             return false
         }
 

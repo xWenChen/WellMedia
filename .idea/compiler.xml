@@ -6,6 +6,8 @@
       <module name="WellMedia.commonlib" target="11" />
       <module name="WellMedia.medialib" target="11" />
       <module name="WellMedia.processor" target="1.8" />
+      <module name="WellMedia.processor.main" target="1.8" />
+      <module name="WellMedia.processor.test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
