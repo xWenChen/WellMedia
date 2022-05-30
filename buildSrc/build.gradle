@@ -1,0 +1,55 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://repo.gradle.org/gradle/libs-releases-local/"}
+    }
+
+    dependencies {
+        classpath gradleApi()
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10"
+        classpath "com.android.tools.build:gradle:7.2.0"
+        classpath "com.android.tools.build:gradle-api:7.2.0"
+        classpath 'com.android.tools:repository:30.2.1'
+    }
+}
+
+apply plugin: 'java-library'
+apply plugin: "java-gradle-plugin"
+apply plugin: "kotlin"
+
+repositories {
+    // maven {url uri("./local-plugin-repository")}
+    google()
+    mavenCentral()
+    maven { url "https://repo.gradle.org/gradle/libs-releases-local/"}
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// 省去 resources 目录导入插件的步骤
+gradlePlugin {
+    plugins {
+        create("innerRoutePlugin") {
+            id = "com.mustly.wellmedia.lib.routeplugin"
+            implementationClass = "com.mustly.wellmedia.lib.routeplugin.RoutePlugin"
+        }
+    }
+}
+
+def gradleVersion = "7.2.0"
+
+dependencies {
+    //implementation "org.gradle:gradle-core:$gradleCoreVer"
+    //implementation "org.gradle:gradle-core-api:$coreApiVer"
+    implementation gradleApi()
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.6.10"
+    implementation "com.android.tools.build:gradle:$gradleVersion"
+    implementation "com.android.tools.build:gradle-api:$gradleVersion"
+    implementation "javax.inject:javax.inject:1"
+    implementation 'dom4j:dom4j:1.6.1'
+    implementation 'com.android.tools:repository:30.2.1'
+}
