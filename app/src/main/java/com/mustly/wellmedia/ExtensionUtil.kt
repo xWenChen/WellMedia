@@ -5,6 +5,6 @@ import androidx.core.content.ContextCompat
 /**
  * 返回颜色资源的颜色值
  * */
-fun Int.color() = this.let {colorRes ->
+fun Int.colorRes() = this.let { colorRes ->
     ContextCompat.getColor(MediaApplication.getAppContext(), colorRes)
 }

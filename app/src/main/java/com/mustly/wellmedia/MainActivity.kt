@@ -5,12 +5,7 @@ import android.view.View
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
-import com.mustly.wellmedia.base.BaseActivity
-import com.mustly.wellmedia.base.addFragment
-import com.mustly.wellmedia.base.commitTransaction
-import com.mustly.wellmedia.base.replaceFragment
-import com.mustly.wellmedia.base.FragmentConstant
-import com.mustly.wellmedia.base.TitleBar
+import com.mustly.wellmedia.base.*
 
 class MainActivity : BaseActivity() {
     var drawerLayout: DrawerLayout? = null
@@ -42,7 +37,7 @@ class MainActivity : BaseActivity() {
         navigationView = findViewById(R.id.navigationView)
         toolbar = findViewById(R.id.titleBar)
 
-        toolbar?.setTextColor(R.color.white.color())
+        toolbar?.setTextColor(R.color.white.colorRes())
         toolbar?.setTextSize(17)
         toolbar?.setTitle(R.string.app_title)
         toolbar?.setOnIconClickListener {
@@ -72,7 +67,7 @@ class MainActivity : BaseActivity() {
         drawerLayout?.addDrawerListener(drawerListener)
 
         navigationView?.setNavigationItemSelectedListener {
-            switchFragment(getTagById(it.itemId))
+            switchFragment(getRouteById(it.itemId))
             drawerLayout?.closeDrawer(GravityCompat.START)
             true
         }
@@ -90,18 +85,18 @@ class MainActivity : BaseActivity() {
             toolbar?.setIcon(resId)
     }
 
-    private fun getTagById(itemId: Int): String {
+    private fun getRouteById(itemId: Int): String {
         return when(itemId) {
-            R.id.menu_item_video -> FragmentConstant.Tag.TAG_VIDEO_MAIN_FRAGMENT
-            R.id.menu_item_image -> FragmentConstant.Tag.TAG_IMAGE_MAIN_FRAGMENT
-            else -> FragmentConstant.Tag.TAG_AUDIO_MAIN_FRAGMENT
+            R.id.menu_item_video -> PageRoute.VIDEO_MAIN_FRAGMENT
+            R.id.menu_item_image -> PageRoute.IMAGE_MAIN_FRAGMENT
+            else -> PageRoute.AUDIO_MAIN_FRAGMENT
         }
     }
 
     private fun initFragment() {
         // 默认显示音频的 Fragment
         supportFragmentManager.commitTransaction {
-            addFragment(getFragmentContainerId(), FragmentConstant.Tag.TAG_AUDIO_MAIN_FRAGMENT)
+            addFragment(getFragmentContainerId(), PageRoute.AUDIO_MAIN_FRAGMENT)
         }
     }
 

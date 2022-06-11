@@ -13,27 +13,6 @@ import java.lang.IllegalArgumentException
  * 参考链接：https://blog.csdn.net/vitaviva/article/details/111774009
  * */
 object MediaFragmentFactory : FragmentFactory() {
-    /**
-     * 项目中已定义的 Fragment 的集合，所有 Fragment 必须在此处注册
-     * */
-    private var usefulFragments = HashMap<String, Class<out BaseFragment>>().apply {
-        this[FragmentConstant.Tag.AUDIO_MAIN_FRAGMENT] = AudioMainFragment::class.java
-        this[FragmentConstant.Tag.AUDIO_PLAY_FRAGMENT] = AudioPlayFragment::class.java
-
-        this[FragmentConstant.Tag.VIDEO_MAIN_FRAGMENT] = VideoMainFragment::class.java
-        this[FragmentConstant.Tag.VIDEO_VIEW_PLAY] = VideoViewPlayFragment::class.java
-
-        this[FragmentConstant.Tag.IMAGE_MAIN_FRAGMENT] = ImageMainFragment::class.java
-    }
-
-    fun findClassByTag(tag: String): Class<out BaseFragment> {
-        return if(usefulFragments.containsKey(tag)) {
-            usefulFragments[tag]!!
-        } else {
-            throw IllegalArgumentException("Fragment not registered, tag = $tag")
-        }
-    }
-
     override fun instantiate(classLoader: ClassLoader, className: String): Fragment {
         var clazz = loadFragmentClass(classLoader, className)
         return when(clazz) {
@@ -42,6 +21,15 @@ object MediaFragmentFactory : FragmentFactory() {
             ImageMainFragment::class.java -> ImageMainFragment()
             else -> super.instantiate(classLoader, className)
         }
+    }
+}
+
+fun String.getFragmentClass(): Class<out Fragment>? {
+    return try {
+        Class.forName(this) as Class<out Fragment>
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }
 
@@ -59,8 +47,4 @@ object PageRoute {
     object Param {
         const val KEY_FRAGMENT_TAG = "key_fragment_tag"
     }
-}
-
-fun getFragmentClassByTag(tag: String): Class<out BaseFragment> {
-    return MediaFragmentFactory.findClassByTag(tag)
 }

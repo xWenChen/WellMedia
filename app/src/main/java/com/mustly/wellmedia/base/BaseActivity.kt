@@ -2,11 +2,10 @@ package com.mustly.wellmedia.base
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import com.mustly.wellmedia.R
-import com.mustly.wellmedia.color
+import com.mustly.wellmedia.colorRes
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -35,7 +34,7 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun configActivity() {
         // 设置沉浸式状态栏
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.statusBarColor = R.color.color_39e600.color()
+        window.statusBarColor = R.color.color_39e600.colorRes()
     }
 
     /**

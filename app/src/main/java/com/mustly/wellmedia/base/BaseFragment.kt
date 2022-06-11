@@ -3,6 +3,7 @@ package com.mustly.wellmedia.base
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.InflateException
 import android.view.LayoutInflater
 import android.view.View
@@ -14,7 +15,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.Lifecycle
+import com.mustly.wellmedia.lib.commonlib.route.RouteHub
 import com.mustly.wellmedia.utils.checkAndRequestPermission
+import java.lang.IllegalArgumentException
 
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
@@ -36,11 +39,11 @@ abstract class BaseFragment(@LayoutRes layoutResId: Int) : Fragment(layoutResId)
     }
 
     fun startFunctionActivity(
-        @FragmentConstant.Tag tag: String,
+        route: String,
         dataSetCallback: (Bundle.() -> Unit)? = null
     ) {
         startActivity(Intent(activity, FunctionActivity::class.java), Bundle().apply {
-            putString(FragmentConstant.Key.KEY_FRAGMENT_TAG, tag)
+            putString(PageRoute.Param.KEY_FRAGMENT_TAG, route)
             dataSetCallback?.invoke(this)
         })
     }
@@ -69,7 +72,7 @@ fun FragmentTransaction.hideFragment(fragment: Fragment) {
     this.setMaxLifecycle(fragment, Lifecycle.State.STARTED)
 }
 
-fun FragmentTransaction.addFragment(containerId: Int, tag: String, args: (Bundle.() -> Unit)? = null) {
+fun FragmentTransaction.addFragment(containerId: Int, route: String, args: (Bundle.() -> Unit)? = null) {
     val bundle: Bundle?
     if(args == null) {
         bundle = null
@@ -78,10 +81,12 @@ fun FragmentTransaction.addFragment(containerId: Int, tag: String, args: (Bundle
         args.invoke(bundle)
     }
 
-    this.add(containerId, getFragmentClassByTag(tag), bundle, tag)
+    route.getFragmentClass()?.also {
+        this.add(containerId, it, bundle, route)
+    } ?: Log.e("FragmentTransaction", "addFragment", IllegalArgumentException("the class of $route is null"))
 }
 
-fun FragmentTransaction.replaceFragment(id: Int, tag: String, args: (Bundle.() -> Unit)? = null) {
+fun FragmentTransaction.replaceFragment(containerId: Int, route: String, args: (Bundle.() -> Unit)? = null) {
     val bundle: Bundle?
     if(args == null) {
         bundle = null
@@ -90,7 +95,9 @@ fun FragmentTransaction.replaceFragment(id: Int, tag: String, args: (Bundle.() -
         args.invoke(bundle)
     }
 
-    this.replace(id, getFragmentClassByTag(tag), bundle, tag)
+    route.getFragmentClass()?.also {
+        this.replace(containerId, it, bundle, route)
+    } ?: Log.e("FragmentTransaction", "replaceFragment", IllegalArgumentException("the class of $route is null"))
 }
 
 fun FragmentManager.commitTransaction(allowStateLoss: Boolean = true, commitNow: Boolean = false, task: (FragmentTransaction.() -> Unit)? = null) {

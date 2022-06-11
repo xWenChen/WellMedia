@@ -16,10 +16,10 @@ class FunctionActivity : BaseActivity() {
     }
 
     override fun preParseData(savedInstanceState: Bundle?) {
-        var tempTag = savedInstanceState?.getString(FragmentConstant.Key.KEY_FRAGMENT_TAG, "")
+        var tempTag = savedInstanceState?.getString(PageRoute.Param.KEY_FRAGMENT_TAG, "")
         if(tempTag.isNullOrEmpty()) {
             Log.e(TAG, "fragment tag is null, can not create a fragment")
-            tempTag = FragmentConstant.Tag.TAG_AUDIO_PLAY_FRAGMENT
+            tempTag = PageRoute.AUDIO_PLAY_FRAGMENT
         }
         curFragmentTag = tempTag
     }

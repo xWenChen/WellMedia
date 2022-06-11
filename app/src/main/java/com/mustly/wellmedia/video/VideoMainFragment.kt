@@ -10,9 +10,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseAdapter
 import com.mustly.wellmedia.base.BaseFragment
-import com.mustly.wellmedia.base.FragmentConstant
 import com.mustly.wellmedia.base.ItemBean
+import com.mustly.wellmedia.base.PageRoute
+import com.mustly.wellmedia.lib.annotation.Route
 
+@Route(PageRoute.VIDEO_MAIN_FRAGMENT)
 class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
     private var rv: RecyclerView? = null
 
@@ -37,7 +39,7 @@ class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
                 iv.setImageResource(data.iconResId)
                 tv.setText(data.textRes)
                 holderRootView.setOnClickListener {
-                    startFunctionActivity(data.tag)
+                    startFunctionActivity(data.route)
                 }
             }
             .refresh()
@@ -48,12 +50,12 @@ class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
             ItemBean(
                 R.drawable.ic_video_play_1,
                 R.string.video_view_play,
-                FragmentConstant.Tag.TAG_VIDEO_VIEW_PLAY
+                PageRoute.VIDEO_VIEW_PLAY
             ),
             ItemBean(
                 R.drawable.ic_audio_record,
                 R.string.audio_record,
-                FragmentConstant.Tag.TAG_AUDIO_RECORD_FRAGMENT
+                PageRoute.AUDIO_RECORD_FRAGMENT
             )
         )
     }
