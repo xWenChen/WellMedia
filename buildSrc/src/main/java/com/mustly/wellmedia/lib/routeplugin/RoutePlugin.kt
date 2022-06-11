@@ -9,8 +9,8 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.initialization.dsl.ScriptHandler
-import java.util.*
 
+// 代码参考自 Router 框架
 class RoutePlugin : Plugin<Project> {
     override fun apply(project: Project) {
         if (!project.hasPlugin(AppPlugin::class.java)                   // com.android.application
@@ -41,29 +41,17 @@ class RoutePlugin : Plugin<Project> {
 
         when {
             revision.major > 4 -> {
-                v7(project)
+                v4_2(project)
             }
             revision.major == 4 && revision.minor >= 2 -> {
-                v7(project)
+                v4_2(project)
             }
             revision.major == 4 && revision.minor == 1 -> {
-                v7(project)
+                v4_2(project)
             }
             else -> {
-                v7(project)
+                v4_2(project)
             }
-        }
-    }
-
-    // components 代表着 app/lib 等，代表 Android 构建结果的大类
-    // variant 代表构建的一个不同的应用版本，例如 build type + product flavor
-    // artifacts 代表着产物，每个任务执行后都可以有产物。如 文件产物的代表：FileCollection
-    private fun  v7(project: Project) {
-        // com.android.build.api.extension.AndroidComponentsExtension
-        val androidComponents = project.extensions.getByName("androidComponents") as AndroidComponentsExtension<*, *, *>
-
-        androidComponents.onVariants { variant -> // com.android.build.api.variant.Variant
-            registerAndBindTask(project, variant)
         }
     }
 
@@ -71,110 +59,18 @@ class RoutePlugin : Plugin<Project> {
      * 当 gradle 版本导入选项使用 compileOnly 时，需要加上版本兼容。
      * 如：compileOnly "com.android.tools.build:gradle:$gradleVersion"
      * 和 compileOnly "com.android.tools.build:gradle-api:$gradleVersion"
+     *
+     * components 代表着 app/lib 等，代表 Android 构建结果的大类
+     * variant 代表构建的一个不同的应用版本，例如 build type + product flavor
+     * artifacts 代表着产物，每个任务执行后都可以有产物。如 文件产物的代表：FileCollection
      * */
-    /*void v4_2(Project project) {
-        def manifestClz = Class.forName('com.android.build.api.artifact.ArtifactType$MERGED_MANIFEST')
-        def instanceField = manifestClz.getField('INSTANCE')
-        def artifactInstance = instanceField.get(null)
+    private fun  v4_2(project: Project) {
         // com.android.build.api.extension.AndroidComponentsExtension
-        def androidComponents = project.extensions.getByName('androidComponents')
-        androidComponents.onVariants(androidComponents.selector().all(), { variant -> // com.android.build.api.variant.Variant
-            TaskProvider<ManifestTransformerTask> taskProvider = project.tasks.register(
-                    "process${variant.name.capitalize()}RouterManifest", ManifestTransformerTask.class, project)
-            variant.artifacts.use(taskProvider).wiredWithFiles({ it.mergedManifest },
-                { it.updatedManifest }).toTransform(*//*ArtifactType.MERGED_MANIFEST.INSTANCE*//* artifactInstance)
-        })
-    }
-
-    void v4_1(Project project) {
-        /// BaseAppModuleExtension/LibraryExtension
-        def android = project.extensions.getByName('android')
-        if (project.plugins.hasPlugin(AppPlugin) || project.plugins.hasPlugin(DynamicFeaturePlugin)) {
-            // Way1:
-//            AppExtension app = android
-//            app.applicationVariants.all { ApplicationVariantImpl variant -> // com.android.build.gradle.internal.api.ApplicationVariantImpl
-//                variant.outputs.all { BaseVariantOutput output -> // com.android.build.gradle.api.BaseVariantOutput
-//                    output.processManifestProvider.get().doLast { ProcessMultiApkApplicationManifest task ->
-//                        File manifestOutputFile = task.multiApkManifestOutputDirectory.get().file(SdkConstants.ANDROID_MANIFEST_XML).asFile
-//                        ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-//                    }
-//                }
-//            }
-
-            // Way2: Only support app module
-            def manifestClz = Class.forName('com.android.build.api.artifact.ArtifactType$MERGED_MANIFEST')
-            def instanceField = manifestClz.getField('INSTANCE')
-            def artifactInstance = instanceField.get(null)
-
-            android.onVariantProperties { *//*VariantPropertiesImpl*//* variant ->
-                // ApplicationVariantPropertiesImpl/LibraryVariantPropertiesImpl
-                TaskProvider<ManifestTransformerTask> taskProvider = project.tasks.register(
-                        "process${variant.name.capitalize()}RouterManifest", ManifestTransformerTask.class, project)
-                // variant.artifacts: com.android.build.api.artifact.Artifacts
-                variant.artifacts.use(taskProvider).wiredWithFiles({ it.mergedManifest },
-                    { it.updatedManifest }).toTransform(*//*ArtifactType.MERGED_MANIFEST.INSTANCE*//* artifactInstance)
-            }
-        } else if (project.plugins.hasPlugin(LibraryPlugin)) {
-            LibraryExtension lib = android
-                    lib.libraryVariants.all { LibraryVariantImpl variant ->
-                        variant.outputs.all { *//*BaseVariantOutput*//* output -> // com.android.build.gradle.api.BaseVariantOutput
-                            output.processManifestProvider.get().doLast { ProcessLibraryManifest task ->
-                                File manifestOutputFile = task.manifestOutputFile.get().asFile
-                                ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-                            }
-                        }
-                    }
-        } else if (project.plugins.hasPlugin(TestPlugin)) {
-            TestExtension test = android
-                    test.applicationVariants.all { variant ->
-                        it.outputs.all { *//*BaseVariantOutput*//* output -> // com.android.build.gradle.api.BaseVariantOutput
-                            output.processManifestProvider.get().doLast { ProcessTestManifest task ->
-                                File manifestOutputFile = task.packagedManifestOutputDirectory.get().file(SdkConstants.ANDROID_MANIFEST_XML).asFile
-                                ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-                            }
-                        }
-                    }
+        val androidComponents = project.extensions.getByName("androidComponents") as AndroidComponentsExtension<*, *, *>
+        androidComponents.onVariants { variant -> // com.android.build.api.variant.Variant
+            registerAndBindTask(project, variant)
         }
     }
-
-    void v3(Project project) {
-        def android = project.extensions.getByName('android')
-        if (project.plugins.hasPlugin(AppPlugin) || project.plugins.hasPlugin(DynamicFeaturePlugin)) {
-            AppExtension app = android
-                    app.applicationVariants.all { ApplicationVariantImpl variant -> // com.android.build.gradle.internal.api.ApplicationVariantImpl
-                        variant.outputs.all { *//*BaseVariantOutput*//* output -> // com.android.build.gradle.api.BaseVariantOutput
-                            output.processManifestProvider.get().doLast { ProcessApplicationManifest task ->
-                                File manifestOutputFile = task.manifestOutputDirectory.get().file(SdkConstants.ANDROID_MANIFEST_XML).asFile
-                                ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-                            }
-                        }
-                    }
-        } else if (project.plugins.hasPlugin(LibraryPlugin)) {
-            LibraryExtension lib = android
-                    lib.libraryVariants.all { LibraryVariantImpl variant ->
-                        variant.outputs.all { *//*BaseVariantOutput*//* output -> // com.android.build.gradle.api.BaseVariantOutput
-                            output.processManifestProvider.get().doLast { ProcessLibraryManifest task ->
-                                File manifestOutputFile = task.manifestOutputFile.get().asFile
-                                ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-                            }
-                        }
-                    }
-        } else if (project.plugins.hasPlugin(TestPlugin)) {
-            TestExtension test = android
-                    test.applicationVariants.all { variant ->
-                        it.outputs.all { *//*BaseVariantOutput*//* output -> // com.android.build.gradle.api.BaseVariantOutput
-                            output.processManifestProvider.get().doLast { ProcessTestManifest task ->
-//                        File manifestOutputFolder = Strings.isNullOrEmpty(task.apkData.getDirName())
-//                                ? task.manifestOutputDirectory.get().asFile
-//                                : task.manifestOutputDirectory.get().file(task.apkData.getDirName()).asFile
-//                        File manifestOutputFile = new File(manifestOutputFolder, SdkConstants.ANDROID_MANIFEST_XML)
-                                File manifestOutputFile = task.manifestOutputDirectory.get().file(SdkConstants.ANDROID_MANIFEST_XML).asFile
-                                ManifestTransformer.transform(project, manifestOutputFile, manifestOutputFile)
-                            }
-                        }
-                    }
-        }
-    }*/
 
     private fun registerAndBindTask(project: Project, variant: Variant) {
         // 项目中注册任务
@@ -188,11 +84,7 @@ class RoutePlugin : Plugin<Project> {
         ).toTransform(SingleArtifact.MERGED_MANIFEST)
     }
 
-    private fun String.localCapitalize() = replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase(
-            Locale.getDefault()
-        ) else it.toString()
-    }
+    private fun String.localCapitalize() = capitalize()
 }
 
 private fun Project.hasPlugin(pluginClz: Class<out Plugin<Project>>) = plugins.hasPlugin(pluginClz)

@@ -20,14 +20,7 @@ object Utils {
             .replace(".", "_")
             .replace("-", "_")
             .replace(" ", "_")
-            .replaceFirstChar {
-                // 首字母大写
-                if (it.isLowerCase()) {
-                    it.titlecase(Locale.getDefault())
-                } else {
-                    it.toString()
-                }
-            }
+            .capitalize()
     }
 
     fun getRegisterClassName(moduleName: String?, needParse: Boolean = false): String {

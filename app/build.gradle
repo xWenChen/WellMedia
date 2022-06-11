@@ -12,8 +12,6 @@ android {
         targetSdk 30
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -39,7 +37,7 @@ dependencies {
 
     // Kotlin
     implementation "androidx.core:core-ktx:1.7.0"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.5.30"
 
     // Android
     implementation "androidx.appcompat:appcompat:1.4.1"

@@ -1,20 +1,17 @@
 package com.mustly.wellmedia.lib.routeplugin
 
-import org.dom4j.Attribute
 import org.dom4j.Document
 import org.dom4j.Element
 import org.dom4j.io.OutputFormat
 import org.dom4j.io.SAXReader
 import org.dom4j.io.XMLWriter
 import org.gradle.api.DefaultTask
-import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.FileOutputStream
 import javax.inject.Inject
-import javax.xml.parsers.SAXParser
 
 // 定义 Manifest 编辑任务，然后将任务添加到路由插件中
 abstract class ManifestTransformerTask @Inject constructor() : DefaultTask() {
