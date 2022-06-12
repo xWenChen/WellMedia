@@ -5,6 +5,7 @@ import androidx.fragment.app.FragmentFactory
 import com.mustly.wellmedia.audio.AudioMainFragment
 import com.mustly.wellmedia.audio.AudioPlayFragment
 import com.mustly.wellmedia.image.ImageMainFragment
+import com.mustly.wellmedia.lib.commonlib.route.RouteHub
 import com.mustly.wellmedia.video.VideoMainFragment
 import com.mustly.wellmedia.video.VideoViewPlayFragment
 import java.lang.IllegalArgumentException
@@ -26,7 +27,7 @@ object MediaFragmentFactory : FragmentFactory() {
 
 fun String.getFragmentClass(): Class<out Fragment>? {
     return try {
-        Class.forName(this) as Class<out Fragment>
+        Class.forName(RouteHub.routeTable[this]) as Class<out Fragment>
     } catch (e: Exception) {
         e.printStackTrace()
         null

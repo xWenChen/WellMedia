@@ -31,11 +31,20 @@ class RoutePlugin : Plugin<Project> {
             it.javaCompileOptions.annotationProcessorOptions.arguments(options)
         }
 
+        checkVersionAndBindTask(project)
+    }
+
+    private fun checkVersionAndBindTask(project: Project) {
         // 注册 task
-        val appVersion = project.rootProject.configurations.getByName(ScriptHandler.CLASSPATH_CONFIGURATION)
-            .resolvedConfiguration.firstLevelModuleDependencies.find {
-                it.moduleGroup == "com.android.tools.build" && it.moduleName == "gradle"
-            }?.moduleVersion ?: throw GradleException("project version is null. name = ${project.name}")
+        val appVersion = try {
+            project.rootProject.buildscript.configurations.getByName(ScriptHandler.CLASSPATH_CONFIGURATION)
+                .resolvedConfiguration.firstLevelModuleDependencies.find {
+                    it.moduleGroup == "com.android.tools.build" && it.moduleName == "gradle"
+                }?.moduleVersion
+        } catch (e: Exception) {
+            project.logger.error(e.toString())
+            return
+        }
 
         val revision = Revision.parseRevision(appVersion, Revision.Precision.PREVIEW)
 
