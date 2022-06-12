@@ -8,14 +8,11 @@ import android.view.InflateException
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.ActivityResultCallback
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.Lifecycle
-import com.mustly.wellmedia.lib.commonlib.route.RouteHub
 import com.mustly.wellmedia.utils.checkAndRequestPermission
 import java.lang.IllegalArgumentException
 
@@ -23,6 +20,10 @@ import java.lang.IllegalArgumentException
  * 基础 Fragment，封装了懒加载的相关逻辑
  * */
 abstract class BaseFragment(@LayoutRes layoutResId: Int) : Fragment(layoutResId) {
+    companion object {
+        const val TAG = "BaseFragment"
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -48,8 +49,13 @@ abstract class BaseFragment(@LayoutRes layoutResId: Int) : Fragment(layoutResId)
         })
     }
 
-    fun checkAndRequestPermission(permission: String, callback: ((Boolean) -> Unit)) {
-        activity?.checkAndRequestPermission(permission, callback)
+    fun checkAndRequestPermission(
+        permission: String,
+        title: String = "",
+        desc: String = "",
+        callback: ((Boolean) -> Unit)
+    ) {
+        activity?.checkAndRequestPermission(permission, title, desc, callback) ?: Log.w(TAG, "check permission, not find activity")
     }
 
     /**

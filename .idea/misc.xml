@@ -16,6 +16,10 @@
         <entry key="..\:/code/WellMedia/app/src/main/res/layout/fragment_video_view_play.xml" value="0.286231884057971" />
         <entry key="..\:/code/WellMedia/app/src/main/res/menu/navigation_menu.xml" value="0.17083333333333334" />
         <entry key="..\:/code/WellMedia/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.122" />
+        <entry key="..\:/code/WellMedia/commonlib/src/main/res/drawable/bg_cancel_btn.xml" value="0.184" />
+        <entry key="..\:/code/WellMedia/commonlib/src/main/res/drawable/bg_confirm_btn.xml" value="0.184" />
+        <entry key="..\:/code/WellMedia/commonlib/src/main/res/drawable/bg_confirm_dialog.xml" value="0.184" />
+        <entry key="..\:/code/WellMedia/commonlib/src/main/res/layout/dialog_confirm.xml" value="0.2767210144927536" />
       </map>
     </option>
   </component>
