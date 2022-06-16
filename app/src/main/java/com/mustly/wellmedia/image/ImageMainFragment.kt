@@ -6,24 +6,22 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.*
+import com.mustly.wellmedia.databinding.FragmentImageMainBinding
 
-class ImageMainFragment : BaseFragment(R.layout.fragment_image_main) {
-    private var rv: RecyclerView? = null
+class ImageMainFragment : BaseFragment<FragmentImageMainBinding>(R.layout.fragment_image_main) {
 
     override fun initArguments(savedInstanceState: Bundle?) {
 
     }
 
     override fun initView(rootView: View) {
-        rv = rootView.findViewById(R.id.rv_image_main)
     }
 
     override fun initData(context: Context) {
-        rv?.layoutManager = LinearLayoutManager(activity)
-        rv?.adapter = BaseAdapter<ItemBean>()
+        binding.rvImageMain.layoutManager = LinearLayoutManager(activity)
+        binding.rvImageMain.adapter = BaseAdapter<ItemBean>()
             .setData(getFuncList())
             .setLayoutRes {
                 R.layout.layout_rv_item

@@ -3,17 +3,16 @@ package com.mustly.wellmedia.base
 import android.os.Bundle
 import android.util.Log
 import com.mustly.wellmedia.R
+import com.mustly.wellmedia.databinding.ActivityFunctionBinding
+import com.mustly.wellmedia.utils.addFragment
+import com.mustly.wellmedia.utils.commitTransaction
 
-class FunctionActivity : BaseActivity() {
+class FunctionActivity : BaseActivity<ActivityFunctionBinding>(R.layout.activity_function) {
     companion object {
         const val TAG = "FunctionActivity"
     }
 
     private var curFragmentTag  = ""
-
-    override fun getLayoutResId(): Int {
-        return R.layout.activity_function
-    }
 
     override fun preParseData(savedInstanceState: Bundle?) {
         var tempTag = savedInstanceState?.getString(PageRoute.Param.KEY_FRAGMENT_TAG, "")

@@ -4,21 +4,16 @@ import android.os.Bundle
 import android.view.View
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.material.navigation.NavigationView
 import com.mustly.wellmedia.base.*
+import com.mustly.wellmedia.databinding.ActivityMainBinding
+import com.mustly.wellmedia.utils.addFragment
+import com.mustly.wellmedia.utils.commitTransaction
+import com.mustly.wellmedia.utils.replaceFragment
 
-class MainActivity : BaseActivity() {
-    var drawerLayout: DrawerLayout? = null
-    var navigationView: NavigationView? = null
-    var toolbar: TitleBar? = null
-
+class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main) {
     override fun onBackPressed() {
-        if(drawerLayout == null) {
-            super.onBackPressed()
-            return
-        }
-        if (drawerLayout!!.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout!!.closeDrawer(GravityCompat.START)
+        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
         } else {
             super.onBackPressed()
         }
@@ -28,20 +23,12 @@ class MainActivity : BaseActivity() {
 
     }
 
-    override fun getLayoutResId(): Int {
-        return R.layout.activity_main
-    }
-
     override fun initView() {
-        drawerLayout = findViewById(R.id.drawerLayout)
-        navigationView = findViewById(R.id.navigationView)
-        toolbar = findViewById(R.id.titleBar)
-
-        toolbar?.setTextColor(R.color.white.colorRes())
-        toolbar?.setTextSize(17)
-        toolbar?.setTitle(R.string.app_title)
-        toolbar?.setOnIconClickListener {
-            drawerLayout?.apply {
+        binding.titleBar.setTextColor(R.color.white.colorRes())
+        binding.titleBar.setTextSize(17)
+        binding.titleBar.setTitle(R.string.app_title)
+        binding.titleBar.setOnIconClickListener {
+            binding.drawerLayout.apply {
                 // 打开则关闭，关闭则打开
                 if(isDrawerOpen(GravityCompat.START)) {
                     this.closeDrawer(GravityCompat.START)
@@ -64,14 +51,14 @@ class MainActivity : BaseActivity() {
                 setTitleIcon(R.drawable.ic_unfold_menu)
             }
         }
-        drawerLayout?.addDrawerListener(drawerListener)
+        binding.drawerLayout.addDrawerListener(drawerListener)
 
-        navigationView?.setNavigationItemSelectedListener {
+        binding.navigationView.setNavigationItemSelectedListener {
             switchFragment(getRouteById(it.itemId))
-            drawerLayout?.closeDrawer(GravityCompat.START)
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
-        navigationView?.itemIconTintList = null
+        binding.navigationView.itemIconTintList = null
     }
 
     override fun initData() {
@@ -79,10 +66,10 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setTitleIcon(resId: Int) {
-        if(toolbar?.getIconRes() == resId) {
+        if(binding.titleBar.getIconRes() == resId) {
             return
         }
-            toolbar?.setIcon(resId)
+        binding.titleBar.setIcon(resId)
     }
 
     private fun getRouteById(itemId: Int): String {

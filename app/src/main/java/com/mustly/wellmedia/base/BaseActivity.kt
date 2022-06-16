@@ -4,16 +4,19 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.colorRes
 
-abstract class BaseActivity : AppCompatActivity() {
+abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: Int) : AppCompatActivity() {
+    lateinit var binding: VB
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 需要在 onCreate 之前调用
         supportFragmentManager.fragmentFactory = MediaFragmentFactory
         super.onCreate(savedInstanceState)
-        setContentView(getLayoutResId())
+        binding = DataBindingUtil.setContentView(this, layoutResId)
 
         if(isConfigActivity()) {
             configActivity()
@@ -45,9 +48,6 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     abstract fun preParseData(savedInstanceState: Bundle?)
-
-    @LayoutRes
-    abstract fun getLayoutResId(): Int
 
     abstract fun initView()
 

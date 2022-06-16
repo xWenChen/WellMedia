@@ -1,43 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 标题栏 -->
-    <com.mustly.wellmedia.base.TitleBar
-        android:id="@+id/titleBar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp" />
+    <data>
 
-    <androidx.drawerlayout.widget.DrawerLayout
-        android:id="@+id/drawerLayout"
+    </data>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:openDrawer="start">
-        <!-- 主界面 -->
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/fragmentContainerView"
+        android:orientation="vertical">
+
+        <!-- 标题栏 -->
+        <com.mustly.wellmedia.base.TitleBar
+            android:id="@+id/titleBar"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="56dp" />
 
-        <!-- 侧滑栏
-             app:insetForeground="@android:color/transparent" NavigationView 沉浸式展示
-             app:headerLayout="@layout/nav_header_main" 在 NavigationView 上添加一个 Header 布局
-             app:menu="@menu/activity_main_drawer" NavigationView 添加标签 Item 的菜单
-          -->
-        <com.google.android.material.navigation.NavigationView
-            android:id="@+id/navigationView"
-            android:layout_width="wrap_content"
+        <androidx.drawerlayout.widget.DrawerLayout
+            android:id="@+id/drawerLayout"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="start"
-            android:fitsSystemWindows="true"
-            app:insetForeground="@android:color/transparent"
-            app:headerLayout="@layout/nav_header_main"
-            app:menu="@menu/navigation_menu"/>
-    </androidx.drawerlayout.widget.DrawerLayout>
+            tools:openDrawer="start">
+            <!-- 主界面 -->
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/fragmentContainerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
-</LinearLayout>
+            <!-- 侧滑栏
+                 app:insetForeground="@android:color/transparent" NavigationView 沉浸式展示
+                 app:headerLayout="@layout/nav_header_main" 在 NavigationView 上添加一个 Header 布局
+                 app:menu="@menu/activity_main_drawer" NavigationView 添加标签 Item 的菜单
+              -->
+            <com.google.android.material.navigation.NavigationView
+                android:id="@+id/navigationView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:fitsSystemWindows="true"
+                app:insetForeground="@android:color/transparent"
+                app:headerLayout="@layout/nav_header_main"
+                app:menu="@menu/navigation_menu" />
+        </androidx.drawerlayout.widget.DrawerLayout>
+
+    </LinearLayout>
+</layout>

@@ -6,29 +6,28 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseAdapter
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.ItemBean
 import com.mustly.wellmedia.base.PageRoute
+import com.mustly.wellmedia.databinding.FragmentVideoMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.VIDEO_MAIN_FRAGMENT)
-class VideoMainFragment : BaseFragment(R.layout.fragment_video_main) {
-    private var rv: RecyclerView? = null
+class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>(R.layout.fragment_video_main) {
 
     override fun initArguments(savedInstanceState: Bundle?) {
 
     }
 
     override fun initView(rootView: View) {
-        rv = rootView.findViewById(R.id.rv_video_main)
+
     }
 
     override fun initData(context: Context) {
-        rv?.layoutManager = LinearLayoutManager(activity)
-        rv?.adapter = BaseAdapter<ItemBean>()
+        binding.rvVideoMain.layoutManager = LinearLayoutManager(activity)
+        binding.rvVideoMain.adapter = BaseAdapter<ItemBean>()
             .setData(getFuncList())
             .setLayoutRes {
                 R.layout.layout_rv_item
