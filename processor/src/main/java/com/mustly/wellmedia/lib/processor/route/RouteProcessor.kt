@@ -15,10 +15,6 @@ import kotlin.reflect.KClass
 
 @AutoService(Processor::class)
 class RouteProcessor : AbstractProcessor() {
-    companion object {
-        // 注解处理创建的源代码文件位于 kapt/kotlin/generated
-        const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
-    }
 
     private var moduleName = Constants.DEFAULT_MODULE_NAME
 
