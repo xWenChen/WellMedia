@@ -46,12 +46,16 @@ abstract class ManifestTransformerTask @Inject constructor() : DefaultTask() {
     abstract fun getUpdatedManifest(): RegularFileProperty
 
     private fun Document.findFirstAppNode(): Element? {
-        return rootElement.element("application").elements()?.run {
+        /*return rootElement.element("application").elements()?.run {
             if (isNullOrEmpty()) {
                 null
             } else {
+                // 在 application 下的第一个节点添加内容
                 get(0) as? Element
             }
-        }
+        }*/
+
+        // 返回 application 节点
+        return rootElement.element("application")
     }
 }

@@ -51,5 +51,5 @@ class RouteInitializer : Initializer<Unit> {
     }
 
     private fun getTableClassName(moduleName: String) =
-        Constants.GENERATED_ROUTE_REGISTER_PATH + "." + Utils.getRegisterClassName(moduleName, true)
+        Constants.GENERATED_ROUTE_REGISTER_PATH + "." + Utils.getRegisterClassName(moduleName)
 }

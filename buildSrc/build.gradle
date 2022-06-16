@@ -12,6 +12,10 @@ buildscript {
 
 apply plugin: "kotlin"
 
+tasks.withType(Copy).all {
+    duplicatesStrategy 'exclude'
+}
+
 repositories {
     google()
     mavenCentral()

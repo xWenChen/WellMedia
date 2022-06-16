@@ -2,6 +2,7 @@ plugins {
     id "com.android.application"
     id "org.jetbrains.kotlin.android"
     id "com.mustly.wellmedia.lib.routeplugin"
+    id 'kotlin-kapt'
 }
 
 android {
@@ -31,7 +32,7 @@ android {
 }
 
 dependencies {
-    implementation project(':processor')
+    kapt project(':processor')
     implementation project(':commonlib')
     implementation project(':medialib')
     implementation project(":annotation")

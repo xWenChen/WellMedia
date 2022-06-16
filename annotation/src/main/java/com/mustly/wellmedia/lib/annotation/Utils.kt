@@ -23,7 +23,7 @@ object Utils {
             .capitalize()
     }
 
-    fun getRegisterClassName(moduleName: String?, needParse: Boolean = false): String {
+    fun getRegisterClassName(moduleName: String?, needParse: Boolean = true): String {
         var prefix = ""
 
         if (needParse) {

@@ -103,9 +103,9 @@ class MainActivity : BaseActivity() {
     /**
      * 根据 TAG 切换 Fragment
      * */
-    private fun switchFragment(tag: String) {
+    private fun switchFragment(route: String) {
         supportFragmentManager.commitTransaction {
-            replaceFragment(getFragmentContainerId(), tag)
+            replaceFragment(getFragmentContainerId(), route)
         }
     }
 

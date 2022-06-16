@@ -65,11 +65,13 @@ class RouteProcessor : AbstractProcessor() {
 
     private fun generateRouteTable(typeElements: List<TypeElement>) {
         // 生成方法的参数类型：Map<String, KClass<*>>
-        val mapTypeName = Map::class.asClassName().parameterizedBy(
+        // 生成方法的参数类型：Map<String, String>
+        val mapTypeName = HashMap::class.asClassName().parameterizedBy(
             String::class.asClassName(),
-            KClass::class.asClassName().parameterizedBy(
+            String::class.asClassName()
+            /*KClass::class.asClassName().parameterizedBy(
                 WildcardTypeName.producerOf(Any::class)
-            )
+            )*/
         )
 
         // 生成 map 参数
@@ -95,7 +97,7 @@ class RouteProcessor : AbstractProcessor() {
             if (pathRecorder.containsKey(path)) {
                 throw RuntimeException("Duplicate route path: ${path}[${it.qualifiedName}, ${pathRecorder[path]}]")
             }
-            funcRegister.addStatement("map[%S] = \"%T\"", path, it.asClassName().canonicalName)
+            funcRegister.addStatement("map[%S] = %S", path, it.asClassName().canonicalName)
             pathRecorder[path] = it.qualifiedName.toString()
         }
 
