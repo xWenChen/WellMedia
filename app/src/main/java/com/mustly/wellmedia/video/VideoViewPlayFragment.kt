@@ -26,10 +26,9 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layou
     override fun initView(rootView: View) {
         binding.videoView.apply {
             // 播放 res/raw 目录下的文件
-            //setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.}"))
-
+            // 田中明日香的视频
+            setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.tanaka_asuka}"))
             setMediaController(MediaController(requireActivity()))
-
             setOnPreparedListener {
                 Log.d(TAG, " >>> Video prepared")
             }
