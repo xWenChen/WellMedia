@@ -26,7 +26,7 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layou
     override fun initView(rootView: View) {
         binding.videoView.apply {
             // 播放 res/raw 目录下的文件
-            setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.}"))
+            //setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.}"))
 
             setMediaController(MediaController(requireActivity()))
 

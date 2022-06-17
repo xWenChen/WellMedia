@@ -88,9 +88,13 @@ class RoutePlugin : Plugin<Project> {
             ManifestTransformerTask::class.java
         )
         // 将任务和具体的产入产出挂钩，方便转换
-        variant.artifacts.use(taskProvider).wiredWithFiles(
-            { it.getMergedManifest() }, { it.getUpdatedManifest() }
-        ).toTransform(SingleArtifact.MERGED_MANIFEST)
+        variant.artifacts
+            // 指定任务
+            .use(taskProvider)
+            // 绑定输入输出与 artifacts 的产出挂钩
+            .wiredWithFiles(ManifestTransformerTask::srcManifest, ManifestTransformerTask::updatedManifest)
+            // 绑定 artifacts 的产出，处理 artifacts 中合并过后的 manifest 文件
+            .toTransform(SingleArtifact.MERGED_MANIFEST)
     }
 
     private fun String.localCapitalize() = capitalize()

@@ -11,16 +11,17 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.FileOutputStream
-import javax.inject.Inject
 
 // 定义 Manifest 编辑任务，然后将任务添加到路由插件中
-abstract class ManifestTransformerTask @Inject constructor() : DefaultTask() {
+abstract class ManifestTransformerTask : DefaultTask() {
+    @get:InputFile abstract val srcManifest: RegularFileProperty
+    @get:OutputFile abstract val updatedManifest: RegularFileProperty
 
     // 该 task 要做的事
     @TaskAction
     fun taskAction() {
-        val input = getMergedManifest().get().asFile
-        val output = getUpdatedManifest().get().asFile
+        val input = srcManifest.get().asFile
+        val output = updatedManifest.get().asFile
 
         val document = SAXReader().read(input)
 
@@ -38,12 +39,6 @@ abstract class ManifestTransformerTask @Inject constructor() : DefaultTask() {
             close()
         }
     }
-
-    @InputFile
-    abstract fun getMergedManifest(): RegularFileProperty
-
-    @OutputFile
-    abstract fun getUpdatedManifest(): RegularFileProperty
 
     private fun Document.findFirstAppNode(): Element? {
         /*return rootElement.element("application").elements()?.run {
