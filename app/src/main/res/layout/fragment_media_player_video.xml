@@ -6,11 +6,9 @@
 
     </data>
 
-    <androidx.appcompat.widget.LinearLayoutCompat
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
         tools:context=".video.MediaPlayerVideoFragment">
 
         <TextView
@@ -18,12 +16,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="@string/media_player_play_video" />
+            android:text="@string/media_player_play_video"
+            android:layout_centerHorizontal="true"
+            android:layout_above="@id/svVideo"/>
 
         <SurfaceView
             android:id="@+id/svVideo"
             android:layout_width="match_parent"
-            android:layout_height="300dp"/>
+            android:layout_height="250dp"
+            android:layout_margin="8dp"
+            android:layout_centerInParent="true"/>
 
-    </androidx.appcompat.widget.LinearLayoutCompat>
+    </RelativeLayout>
 </layout>

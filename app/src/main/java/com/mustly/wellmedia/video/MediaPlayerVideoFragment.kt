@@ -5,7 +5,6 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
-import android.util.Log
 import android.view.SurfaceHolder
 import android.view.View
 import androidx.lifecycle.lifecycleScope
