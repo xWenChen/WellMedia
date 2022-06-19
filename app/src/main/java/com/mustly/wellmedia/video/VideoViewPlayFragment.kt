@@ -12,6 +12,8 @@ import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentVideoViewPlayBinding
 import com.mustly.wellmedia.lib.annotation.Route
+import com.mustly.wellmedia.uriPath
+
 /**
  * VideoView 提供的功能太过简单
  * 默认播放时不会保持屏幕常亮；
@@ -28,10 +30,6 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layou
         const val TAG = "VideoViewPlayFragment"
     }
 
-    override fun initArguments(savedInstanceState: Bundle?) {
-
-    }
-
     override fun initView(rootView: View) {
         binding.videoView.apply {
             /**
@@ -41,7 +39,7 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layou
              * */
             // 播放 res/raw 目录下的文件
             // 田中明日香的视频
-            setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.tanaka_asuka}"))
+            setVideoURI(Uri.parse(R.raw.tanaka_asuka.uriPath()))
             // MediaController 自定进度条，快进，暂停等功能
             setMediaController(MediaController(requireActivity()))
             setOnPreparedListener {

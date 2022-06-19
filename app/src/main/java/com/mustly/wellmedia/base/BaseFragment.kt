@@ -31,7 +31,6 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
     ): View {
         binding = DataBindingUtil.inflate(layoutInflater, layoutResId, container, false)
 
-        initArguments(savedInstanceState)
         initView(binding.root)
         initData(binding.root.context)
 
@@ -63,11 +62,6 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
-
-    /**
-     * 获取用户传入的参数
-     * */
-    abstract fun initArguments(savedInstanceState: Bundle?)
 
     abstract fun initView(rootView: View)
 

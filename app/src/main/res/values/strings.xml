@@ -11,6 +11,7 @@
     <string name="audio_play">音频播放</string>
     <string name="audio_record">音频录制</string>
     <string name="video_view_play">VideoView 播放视频</string>
+    <string name="media_player_play_video">MediaPlayer 播放视频</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

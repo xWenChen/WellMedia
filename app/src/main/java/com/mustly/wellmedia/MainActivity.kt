@@ -83,7 +83,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main) {
     private fun initFragment() {
         // 默认显示音频的 Fragment
         supportFragmentManager.commitTransaction {
-            addFragment(getFragmentContainerId(), PageRoute.AUDIO_MAIN_FRAGMENT)
+            addFragment(getFragmentContainerId(), PageRoute.VIDEO_MAIN_FRAGMENT)
         }
     }
 

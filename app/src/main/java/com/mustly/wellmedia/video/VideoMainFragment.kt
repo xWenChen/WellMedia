@@ -17,10 +17,6 @@ import com.mustly.wellmedia.lib.annotation.Route
 @Route(PageRoute.VIDEO_MAIN_FRAGMENT)
 class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>(R.layout.fragment_video_main) {
 
-    override fun initArguments(savedInstanceState: Bundle?) {
-
-    }
-
     override fun initView(rootView: View) {
 
     }
@@ -47,9 +43,14 @@ class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>(R.layout.fragme
     private fun getFuncList(): MutableList<ItemBean> {
         return mutableListOf(
             ItemBean(
-                R.drawable.ic_video_play_1,
+                R.drawable.ic_number_1,
                 R.string.video_view_play,
                 PageRoute.VIDEO_VIEW_PLAY
+            ),
+            ItemBean(
+                R.drawable.ic_number_2,
+                R.string.media_player_play_video,
+                PageRoute.MEDIA_PLAYER_PLAY_VIDEO
             ),
             ItemBean(
                 R.drawable.ic_audio_record,

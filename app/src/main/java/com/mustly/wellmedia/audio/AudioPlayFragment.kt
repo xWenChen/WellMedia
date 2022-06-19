@@ -10,9 +10,6 @@ import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.AUDIO_PLAY_FRAGMENT)
 class AudioPlayFragment : BaseFragment<FragmentAudioPlayBinding>(R.layout.fragment_audio_play) {
-    override fun initArguments(savedInstanceState: Bundle?) {
-        // TODO
-    }
 
     override fun initView(rootView: View) {
         // TODO 实现播放音乐时，柱状图的特效/图片转圈的特效

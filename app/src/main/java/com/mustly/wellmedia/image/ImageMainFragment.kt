@@ -12,10 +12,6 @@ import com.mustly.wellmedia.databinding.FragmentImageMainBinding
 
 class ImageMainFragment : BaseFragment<FragmentImageMainBinding>(R.layout.fragment_image_main) {
 
-    override fun initArguments(savedInstanceState: Bundle?) {
-
-    }
-
     override fun initView(rootView: View) {
     }
 

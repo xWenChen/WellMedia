@@ -16,9 +16,6 @@ import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.AUDIO_MAIN_FRAGMENT)
 class AudioMainFragment : BaseFragment<FragmentAudioMainBinding>(R.layout.fragment_audio_main) {
-    override fun initArguments(savedInstanceState: Bundle?) {
-
-    }
 
     override fun initView(rootView: View) {
 

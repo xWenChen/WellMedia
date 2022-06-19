@@ -39,6 +39,8 @@ object PageRoute {
     const val VIDEO_MAIN_FRAGMENT = "video_main_fragment"
     // VideoView 播放视频
     const val VIDEO_VIEW_PLAY = "video_view_play"
+    // MediaPlayer 播放视频
+    const val MEDIA_PLAYER_PLAY_VIDEO = "media_player_play_video"
 
     const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
 
