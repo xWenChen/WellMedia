@@ -12,7 +12,16 @@ import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentVideoViewPlayBinding
 import com.mustly.wellmedia.lib.annotation.Route
-
+/**
+ * VideoView 提供的功能太过简单
+ * 默认播放时不会保持屏幕常亮；
+ * 图像默认位于右上角；
+ * 熄屏后有内存泄漏问题；
+ * 熄屏后回来，VideoView会被回收，导致黑屏；
+ * MediaController 提供的功能也很简单，且位于屏幕底部；
+ *
+ * TODO 建议不使用
+ * */
 @Route(PageRoute.VIDEO_VIEW_PLAY)
 class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layout.fragment_video_view_play) {
     companion object {
