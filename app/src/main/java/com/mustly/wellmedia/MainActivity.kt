@@ -19,7 +19,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main) {
         }
     }
 
-    override fun preParseData(savedInstanceState: Bundle?) {
+    override fun preParseData() {
 
     }
 

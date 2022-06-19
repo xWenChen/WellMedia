@@ -14,8 +14,8 @@ class FunctionActivity : BaseActivity<ActivityFunctionBinding>(R.layout.activity
 
     private var curFragmentTag  = ""
 
-    override fun preParseData(savedInstanceState: Bundle?) {
-        var tempTag = savedInstanceState?.getString(PageRoute.Param.KEY_FRAGMENT_TAG, "")
+    override fun preParseData() {
+        var tempTag = intent?.getStringExtra(PageRoute.Param.KEY_FRAGMENT_TAG)
         if(tempTag.isNullOrEmpty()) {
             Log.e(TAG, "fragment tag is null, can not create a fragment")
             tempTag = PageRoute.AUDIO_PLAY_FRAGMENT

@@ -3,12 +3,9 @@ package com.mustly.wellmedia.base
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentFactory
 import com.mustly.wellmedia.audio.AudioMainFragment
-import com.mustly.wellmedia.audio.AudioPlayFragment
 import com.mustly.wellmedia.image.ImageMainFragment
 import com.mustly.wellmedia.lib.commonlib.route.RouteHub
 import com.mustly.wellmedia.video.VideoMainFragment
-import com.mustly.wellmedia.video.VideoViewPlayFragment
-import java.lang.IllegalArgumentException
 
 /**
  * 参考链接：https://blog.csdn.net/vitaviva/article/details/111774009

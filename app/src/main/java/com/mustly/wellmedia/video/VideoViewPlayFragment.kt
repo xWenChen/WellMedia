@@ -25,25 +25,39 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layou
 
     override fun initView(rootView: View) {
         binding.videoView.apply {
+            /**
+             * TODO 解决熄屏后 VideoView 被回收的问题
+             * TODO 解决视频未居中的问题
+             * TODO 解决空白背景的问题(添加模糊图像)
+             * */
             // 播放 res/raw 目录下的文件
             // 田中明日香的视频
             setVideoURI(Uri.parse("android.resource://${requireActivity().packageName}/${R.raw.tanaka_asuka}"))
+            // MediaController 自定进度条，快进，暂停等功能
             setMediaController(MediaController(requireActivity()))
             setOnPreparedListener {
                 Log.d(TAG, " >>> Video prepared")
+                keepScreenOn(true)
             }
             setOnCompletionListener {
                 Log.d(TAG, " >>> Video play completed")
+                keepScreenOn(false)
             }
 
             setOnErrorListener { mediaPlayer, what, extra ->
                 Log.e(TAG, " >>> Video play error, what=$what, extra=$extra")
                 // 返回 true, 表示错误被处理，不显示 VideoView 自定义的弹框
+                keepScreenOn(false)
                 true
             }
             // 开始播放
             start()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        keepScreenOn(false)
     }
 
     override fun initData(context: Context) {

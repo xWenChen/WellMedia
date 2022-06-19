@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.annotation.LayoutRes
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
@@ -39,11 +40,10 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
 
     fun startFunctionActivity(
         route: String,
-        dataSetCallback: (Bundle.() -> Unit)? = null
     ) {
-        startActivity(Intent(activity, FunctionActivity::class.java), Bundle().apply {
-            putString(PageRoute.Param.KEY_FRAGMENT_TAG, route)
-            dataSetCallback?.invoke(this)
+
+        startActivity(Intent(activity, FunctionActivity::class.java).apply {
+            putExtra(PageRoute.Param.KEY_FRAGMENT_TAG, route)
         })
     }
 
@@ -54,6 +54,14 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
         callback: ((Boolean) -> Unit)
     ) {
         activity?.checkAndRequestPermission(permission, title, desc, callback) ?: Log.w(TAG, "check permission, not find activity")
+    }
+
+    fun keepScreenOn(enable: Boolean) {
+        if (enable) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     /**
