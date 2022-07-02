@@ -46,7 +46,7 @@ abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
     private fun configActivity() {
         // 设置沉浸式状态栏
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.statusBarColor = R.color.color_39e600.colorRes()
+        window.statusBarColor = R.color.color_39e600.colorRes
         if (hideTitleBar) {
             requestWindowFeature(Window.FEATURE_NO_TITLE)
             supportActionBar?.hide()

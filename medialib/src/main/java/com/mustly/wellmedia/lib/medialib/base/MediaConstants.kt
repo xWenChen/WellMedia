@@ -1,5 +1,21 @@
 package com.mustly.wellmedia.lib.medialib.base
 /**
+ * 播放状态
+ * */
+enum class PlayState {
+    UNINITIALIZED,
+    PREPARED,
+    PLAYING,
+    PAUSED,
+    COMPLETED,
+    ERROR,
+}
+
+fun PlayState.isPlayState(state: PlayState): Boolean {
+    return state == this
+}
+
+/**
  * 媒体文件类型
  * */
 enum class MediaType {

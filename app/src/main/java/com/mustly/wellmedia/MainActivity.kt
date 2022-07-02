@@ -24,7 +24,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main) {
     }
 
     override fun initView() {
-        binding.titleBar.setTextColor(R.color.white.colorRes())
+        binding.titleBar.setTextColor(R.color.white.colorRes)
         binding.titleBar.setTextSize(17)
         binding.titleBar.setTitle(R.string.app_title)
         binding.titleBar.setOnIconClickListener {

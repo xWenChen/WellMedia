@@ -10,9 +10,17 @@ import kotlinx.coroutines.withContext
 /**
  * 返回颜色资源的颜色值
  * */
-fun Int.colorRes() = this.let { colorRes ->
-    ContextCompat.getColor(MediaApplication.getAppContext(), colorRes)
-}
+val Int.colorRes
+    get() = this.let { colorRes ->
+        ContextCompat.getColor(MediaApplication.getAppContext(), colorRes)
+    }
+/**
+ * 返回字符串资源的文本
+ * */
+val Int.stringRes
+    get() = this.let { stringRes ->
+        MediaApplication.getAppContext().getString(stringRes)
+    }
 /**
  * 获取资源 id 的 uri 路径表示
  * */

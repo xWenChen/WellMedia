@@ -7,14 +7,19 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.view.SurfaceHolder
 import android.view.View
+import android.widget.SeekBar
 import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentMediaPlayerVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
+import com.mustly.wellmedia.lib.medialib.base.PlayState
+import com.mustly.wellmedia.lib.medialib.base.isPlayState
 import com.mustly.wellmedia.runResult
+import com.mustly.wellmedia.stringRes
 import com.mustly.wellmedia.uriPath
+import kotlinx.coroutines.*
 
 /**
  * MediaPlayer 状态说明：
@@ -32,6 +37,12 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
     companion object {
         const val TAG = "MediaPlayerVideo"
     }
+
+    private var playState = PlayState.UNINITIALIZED
+
+    private var isSeekBarChanging = false
+
+    private var scheduledJob: Job? = null
 
     val mediaPlayer = MediaPlayer()
 
@@ -54,20 +65,55 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
 
             override fun surfaceRedrawNeeded(holder: SurfaceHolder) {}
         })
+
+        binding.tvCurrentTime.text = R.string.zero_time_text.stringRes
+        binding.tvTimeEnd.text = R.string.zero_time_text.stringRes
+
+        binding.sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                binding.tvCurrentTime.text = mediaPlayer.currentPosition.formattedTime()
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                // 通知用户已经开始一个触摸拖动手势
+                isSeekBarChanging = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                // 通知用户触摸手势已经结束
+                isSeekBarChanging = false
+                mediaPlayer.seekTo(seekBar.progress)
+                if (mediaPlayer.notPlay()) {
+                    startPlay()
+                }
+                binding.tvCurrentTime.text = seekBar.progress.formattedTime()
+            }
+        })
+        binding.btnPlay.setOnClickListener {
+            startPlay()
+        }
+        binding.btnPause.setOnClickListener {
+            if (playState.isPlayState(PlayState.PLAYING)) {
+                stopPlay(true)
+            }
+        }
+        binding.btnReset.setOnClickListener {
+            if (playState.isPlayState(PlayState.ERROR)) {
+                mediaPlayer.prePareAndStart()
+            } else {
+                stopPlay()
+                startPlay()
+            }
+        }
     }
 
     override fun initData(context: Context) {
         mediaPlayer.apply {
             mediaPlayer.reset()
+            // 循环播放
+            mediaPlayer.isLooping = true
             setDataSource(context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
-            lifecycleScope.runResult(
-                doOnIo = {
-                    prepare()
-                },
-                doOnSuccess = {
-                    start()
-                }
-            )
+            prePareAndStart()
             /*setOnPreparedListener {
 
             }
@@ -82,12 +128,112 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
         }
     }
 
+    private fun MediaPlayer.prePareAndStart() {
+        lifecycleScope.runResult(
+            doOnIo = {
+                prepare()
+            },
+            doOnSuccess = {
+                playState = PlayState.PREPARED
+                realStartPlay()
+            },
+            doOnFailure = {
+                playState = PlayState.ERROR
+            }
+        )
+    }
+
     override fun onDestroy() {
         super.onDestroy()
 
         if (mediaPlayer.isPlaying) {
             mediaPlayer.stop()
         }
+
         mediaPlayer.release()
+
+        stopCheckTime()
+    }
+
+    private fun MediaPlayer.notPlay(): Boolean {
+        return playState.isPlayState(PlayState.PREPARED) || playState.isPlayState(PlayState.PAUSED)
+    }
+
+    // 毫秒转成格式化的时间字符串
+    private fun Int.formattedTime(): String {
+        if (this <= 0) {
+            return "00:00"
+        }
+
+        val minutes = this / 1000 / 60
+        val seconds = this / 1000 % 60
+
+        return "${checkTimeText(minutes)}:${checkTimeText(seconds)}"
+    }
+
+    private fun checkTimeText(timeNumber: Int) = if (timeNumber in 0..9) {
+        "0$timeNumber"
+    } else {
+        "$timeNumber"
+    }
+
+    private fun startCheckTime(action: () -> Unit) {
+        stopCheckTime()
+        scheduledJob = lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                withContext(Dispatchers.Main) {
+                    action.invoke()
+                }
+                // 500 毫秒，刷新一次计时
+                delay(500)
+            }
+        }
+    }
+
+    private fun startPlay() {
+        if (playState == PlayState.PLAYING) {
+            return
+        }
+
+        if (playState.isPlayState(PlayState.UNINITIALIZED)) {
+            mediaPlayer.prePareAndStart()
+            return
+        }
+        if (playState.isPlayState(PlayState.COMPLETED)) {
+            mediaPlayer.seekTo(0)
+        }
+        if (mediaPlayer.notPlay()) {
+            realStartPlay()
+        }
+    }
+
+    private fun realStartPlay() {
+        binding.sbProgress.max = mediaPlayer.duration
+        binding.tvTimeEnd.text = mediaPlayer.duration.formattedTime()
+        mediaPlayer.start()
+        startCheckTime {
+            binding.tvCurrentTime.text = mediaPlayer.currentPosition.formattedTime()
+            binding.sbProgress.progress = mediaPlayer.currentPosition
+        }
+        playState = PlayState.PLAYING
+    }
+
+    private fun stopPlay(isPaused: Boolean = false) {
+        if (isPaused) {
+            mediaPlayer.pause()
+            playState = PlayState.PAUSED
+        } else {
+            mediaPlayer.stop()
+            playState = PlayState.UNINITIALIZED
+        }
+        stopCheckTime()
+    }
+
+    private fun stopCheckTime() {
+        scheduledJob?.apply {
+            if (!isCancelled) {
+                cancel()
+            }
+        }
     }
 }
