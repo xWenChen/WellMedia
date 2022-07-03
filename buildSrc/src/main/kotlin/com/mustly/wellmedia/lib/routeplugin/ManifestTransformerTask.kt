@@ -34,6 +34,8 @@ abstract class ManifestTransformerTask : DefaultTask() {
         // 修改后的 xml 内容，写入文件
         XMLWriter(FileOutputStream(output), OutputFormat.createPrettyPrint().apply {
             encoding = "UTF-8"
+            setIndentSize(4)
+            isTrimText = false
         }).apply {
             write(document)
             close()
