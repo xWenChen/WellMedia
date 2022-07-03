@@ -112,6 +112,7 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
             mediaPlayer.reset()
             // 循环播放
             mediaPlayer.isLooping = true
+            setScreenOnWhilePlaying(true)
             setDataSource(context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
 
             setOnVideoSizeChangedListener { mMediaPlayer, width, height ->
@@ -137,14 +138,14 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
         if (videoWidth <= 0 || videoHeight <= 0) {
             return
         }
-        val viewWidth = binding.svVideo.measuredWidth
-        val viewHeight = (videoHeight.toFloat() / videoWidth * viewWidth).toInt()
 
-        binding.svVideo.apply {
-            val lp = layoutParams
+        binding.svVideo.post {
+            val viewWidth = binding.svVideo.measuredWidth
+            val viewHeight = (videoHeight.toFloat() / videoWidth * viewWidth).toInt()
+            val lp = binding.svVideo.layoutParams
             lp.width = viewWidth
             lp.height = viewHeight
-            layoutParams = lp
+            binding.svVideo.layoutParams = lp
         }
     }
 
