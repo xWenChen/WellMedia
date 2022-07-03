@@ -113,6 +113,11 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
             // 循环播放
             mediaPlayer.isLooping = true
             setDataSource(context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
+
+            setOnVideoSizeChangedListener { mMediaPlayer, width, height ->
+                changeViewSize(width, height)
+            }
+
             prePareAndStart()
             /*setOnPreparedListener {
 
@@ -125,6 +130,21 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
                 // OnErrorListener 返回 false 时，会调用这个接口
             }
             prepareAsync()*/
+        }
+    }
+
+    private fun changeViewSize(videoWidth: Int, videoHeight: Int) {
+        if (videoWidth <= 0 || videoHeight <= 0) {
+            return
+        }
+        val viewWidth = binding.svVideo.measuredWidth
+        val viewHeight = (videoHeight.toFloat() / videoWidth * viewWidth).toInt()
+
+        binding.svVideo.apply {
+            val lp = layoutParams
+            lp.width = viewWidth
+            lp.height = viewHeight
+            layoutParams = lp
         }
     }
 
@@ -141,6 +161,18 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
                 playState = PlayState.ERROR
             }
         )
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        startPlay()
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        stopPlay(true)
     }
 
     override fun onDestroy() {
