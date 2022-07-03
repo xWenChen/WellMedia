@@ -59,9 +59,13 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
                 mediaPlayer.setDisplay(holder)
             }
 
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                // 跳转到上次播放的位置进行播放
+            }
 
-            override fun surfaceDestroyed(holder: SurfaceHolder) {}
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                // 记录当前正在播放的位置
+            }
 
             override fun surfaceRedrawNeeded(holder: SurfaceHolder) {}
         })
