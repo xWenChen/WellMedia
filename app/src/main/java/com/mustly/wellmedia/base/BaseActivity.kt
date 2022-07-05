@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import com.mustly.wellmedia.R
-import com.mustly.wellmedia.colorRes
+import com.mustly.wellmedia.utils.colorRes
 
 abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: Int) : AppCompatActivity() {
     lateinit var binding: VB

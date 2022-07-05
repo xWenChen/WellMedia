@@ -1,9 +1,7 @@
 package com.mustly.wellmedia.video
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.MediaController
@@ -12,7 +10,7 @@ import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentVideoViewPlayBinding
 import com.mustly.wellmedia.lib.annotation.Route
-import com.mustly.wellmedia.uriPath
+import com.mustly.wellmedia.utils.uriPath
 
 /**
  * VideoView 提供的功能太过简单

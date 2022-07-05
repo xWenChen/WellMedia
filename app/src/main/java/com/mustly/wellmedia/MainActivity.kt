@@ -1,12 +1,12 @@
 package com.mustly.wellmedia
 
-import android.os.Bundle
 import android.view.View
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.mustly.wellmedia.base.*
 import com.mustly.wellmedia.databinding.ActivityMainBinding
 import com.mustly.wellmedia.utils.addFragment
+import com.mustly.wellmedia.utils.colorRes
 import com.mustly.wellmedia.utils.commitTransaction
 import com.mustly.wellmedia.utils.replaceFragment
 
