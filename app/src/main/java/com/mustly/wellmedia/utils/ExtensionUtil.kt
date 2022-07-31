@@ -30,7 +30,7 @@ fun Int.uriPath(): String = "android.resource://${MediaApplication.getAppContext
  * */
 fun <T> CoroutineScope.runResult(
     doOnIo: (CoroutineScope.() -> T),
-    doOnSuccess: (CoroutineScope.(T) -> Unit),
+    doOnSuccess: (CoroutineScope.(T) -> Unit)? = null,
     doOnFailure: (CoroutineScope.(Throwable) -> Unit)? = null,
 ) = launch(Dispatchers.Main) {
     kotlin.runCatching {
@@ -38,7 +38,7 @@ fun <T> CoroutineScope.runResult(
             doOnIo.invoke(this)
         }
     }.onSuccess {
-        doOnSuccess.invoke(this, it)
+        doOnSuccess?.invoke(this, it)
     }.onFailure {
         Log.e("runResult", "", it)
         doOnFailure?.invoke(this, it)
