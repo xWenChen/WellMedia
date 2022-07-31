@@ -16,9 +16,9 @@ import com.mustly.wellmedia.databinding.FragmentMediaPlayerVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.lib.medialib.base.PlayState
 import com.mustly.wellmedia.lib.medialib.base.isPlayState
-import com.mustly.wellmedia.runResult
-import com.mustly.wellmedia.stringRes
-import com.mustly.wellmedia.uriPath
+import com.mustly.wellmedia.utils.runResult
+import com.mustly.wellmedia.utils.stringRes
+import com.mustly.wellmedia.utils.uriPath
 import kotlinx.coroutines.*
 
 /**

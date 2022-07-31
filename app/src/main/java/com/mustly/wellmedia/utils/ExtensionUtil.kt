@@ -1,7 +1,8 @@
-package com.mustly.wellmedia
+package com.mustly.wellmedia.utils
 
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.mustly.wellmedia.MediaApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
