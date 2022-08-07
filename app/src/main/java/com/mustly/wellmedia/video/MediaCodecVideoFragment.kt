@@ -318,16 +318,19 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         videoDecoder.configure(videoFormat, surface, null, 0)
         videoDecoder.start()
 
-        val videoBufferInfo = MediaCodec.BufferInfo()
         val startMs = System.currentTimeMillis()
         var outputDone = false
         var inputDone = false
 
         while (!outputDone) {
             if (!inputDone) {
-                inputDone = videoDecoder.inputData(mExtractor)
+                videoDecoder.inputData(mExtractor)?.apply {
+                    inputDone = this
+                }
             }
-            outputDone = videoDecoder.outputData(videoBufferInfo, startMs)
+            videoDecoder.outputData(startMs)?.apply {
+                outputDone = this
+            }
         }
 
         mExtractor?.release()
@@ -405,7 +408,9 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         while (!outputDone) {
             // 将资源传递到解码器
             if (!inputDone) {
-                inputDone = audioDecoder.inputData(mExtractor)
+                audioDecoder.inputData(mExtractor)?.apply {
+                    inputDone = this
+                }
             }
             outputDone = audioDecoder.outputAudioData(audioTrack, audioBufferInfo, startMs)
         }
@@ -420,13 +425,13 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     /**
      * 原始数据写入解码器
      * */
-    private fun MediaCodec.inputData(mExtractor: MediaExtractor?): Boolean {
+    private fun MediaCodec.inputData(mExtractor: MediaExtractor?): Boolean? {
         // 1. dequeue: 出列，拿到一个输入缓冲区的index，因为有好几个缓冲区来缓冲数据. -1表示暂时没有可用的
         val inputBufferIndex = dequeueInputBuffer(HardwareDecoder.TIMEOUT)
-        if (inputBufferIndex < 0) return false
+        if (inputBufferIndex < 0) return null
 
         // 2. 使用返回的 inputBuffer 的 index 得到一个ByteBuffer，可以放数据了
-        val inputBuffer = getInputBuffer(inputBufferIndex) ?: return false
+        val inputBuffer = getInputBuffer(inputBufferIndex) ?: return null
         // 3. 往 InputBuffer 里面写入数据。返回的是写入的实际数据量，-1 表示已全部写入
         val sampleSize = mExtractor?.readSampleData(inputBuffer, 0) ?: -1
         // 4. 数据入队
@@ -447,11 +452,12 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     /**
      * 从解码器获取解码后的数据
      * */
-    private fun MediaCodec.outputData(videoBufferInfo: MediaCodec.BufferInfo, startMs: Long): Boolean {
+    private fun MediaCodec.outputData(startMs: Long): Boolean? {
+        val videoBufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(videoBufferInfo, startMs)
+        val outputBufferIndex = dequeueOutputBuffer(videoBufferInfo, HardwareDecoder.TIMEOUT)
         if (outputBufferIndex < 0) {
-            return false
+            return null
         }
 
         // 直接渲染到 Surface 时使用不到 outputBuffer
