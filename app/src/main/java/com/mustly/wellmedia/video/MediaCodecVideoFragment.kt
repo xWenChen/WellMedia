@@ -3,7 +3,6 @@ package com.mustly.wellmedia.video
 import android.content.Context
 import android.media.*
 import android.net.Uri
-import android.os.Build
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
@@ -56,7 +55,11 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
                 lifecycleScope.runResult(
                     doOnIo = {
                         decodeVideo(holder.surface)
-                        //decodeAudio()
+                    }
+                )
+                lifecycleScope.runResult(
+                    doOnIo = {
+                        decodeAudio()
                     }
                 )
             }
@@ -303,6 +306,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
                     mExtractor?.selectTrack(it)
                     // 赋值
                     videoFormat = mExtractor?.getTrackFormat(it)
+                    return@let
                 }
             }
         }
@@ -360,6 +364,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
                     mExtractor?.selectTrack(it)
                     // 赋值
                     audioFormat = mExtractor?.getTrackFormat(it)
+                    return@let
                 }
             }
         }
@@ -368,15 +373,15 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         // 声道数
         val channelCount = audioFormat?.getInteger(MediaFormat.KEY_CHANNEL_COUNT) ?: 0
         // 采样位数
-        val sampleWidth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            audioFormat?.getInteger(MediaFormat.KEY_PCM_ENCODING) ?: AudioFormat.ENCODING_PCM_16BIT
-        } else {
-            AudioFormat.ENCODING_PCM_16BIT
-        }
+        val sampleWidth = AudioFormat.ENCODING_PCM_16BIT
 
         // 3. 创建音频播放器
         // 初始化 AudioTrack
-        val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelCount, sampleWidth)
+        val minBufferSize = AudioTrack.getMinBufferSize(
+            sampleRate,
+            if (channelCount == 1) AudioFormat.CHANNEL_OUT_MONO else AudioFormat.CHANNEL_OUT_STEREO,
+            sampleWidth
+        )
         // 说明 https://stackoverflow.com/questions/50866991/android-audiotrack-playback-fast
         val audioTrack = AudioTrack(
             AudioAttributes.Builder()
@@ -385,7 +390,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
                 .build(),
             AudioFormat.Builder()
                 .setSampleRate(sampleRate)
-                .setChannelMask(channelCount)
+                .setChannelMask(if (channelCount == 1) AudioFormat.CHANNEL_OUT_MONO else AudioFormat.CHANNEL_OUT_STEREO)
                 .setEncoding(sampleWidth)
                 .build(),
             minBufferSize,
@@ -412,7 +417,9 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
                     inputDone = this
                 }
             }
-            outputDone = audioDecoder.outputAudioData(audioTrack, audioBufferInfo, startMs)
+            audioDecoder.outputAudioData(audioTrack, audioBufferInfo, startMs)?.apply {
+                outputDone = this
+            }
         }
 
         mExtractor?.release()
@@ -477,14 +484,14 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         audioTrack: AudioTrack,
         audioBufferInfo: MediaCodec.BufferInfo,
         startMs: Long
-    ): Boolean {
+    ): Boolean? {
         // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, startMs)
+        val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, HardwareDecoder.TIMEOUT)
         if (outputBufferIndex < 0 || audioBufferInfo.size <= 0) {
-            return false
+            return null
         }
 
-        val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return false
+        val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return null
         val pcmData = ByteArray(audioBufferInfo.size)
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
         sleep(audioBufferInfo, startMs)
