@@ -12,7 +12,7 @@ import android.util.Log
  * version   1.0
  * modify by
  */
-class SLog(isLogEnable: Boolean = true) : ILog(isLogEnable) {
+class SLog(override var isLogEnable: Boolean = true) : ILog() {
     override fun realV(tag: String, msg: String) {
         Log.v(tag, msg)
     }

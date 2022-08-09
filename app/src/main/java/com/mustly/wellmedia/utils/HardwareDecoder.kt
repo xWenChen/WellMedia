@@ -4,10 +4,7 @@ import android.content.Context
 import android.media.*
 import android.net.Uri
 import android.view.Surface
-import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.lifecycle.lifecycleScope
-import com.mustly.wellmedia.lib.commonlib.log.ILog
-import com.mustly.wellmedia.lib.commonlib.log.SLog
+import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.medialib.base.bean.HardwareMediaInfo
 
 /**
@@ -33,16 +30,18 @@ class HardwareDecoder(
      * 音视频分离器
      * */
     var mExtractor: MediaExtractor = MediaExtractor()
-    /**
-     * 日志打印器
-     * */
-    var logger: ILog = SLog()
+    // 解码器
+    lateinit var decoder: MediaCodec
+    // 音频播放器，仅解码音频时有效
+    lateinit var audioPlayer: AudioTrack
+
+    var mediaInfo: HardwareMediaInfo? = null
 
     fun start(context: Context, surface: Surface? = null) {
         try {
             if (isVideo) {
                 if (surface == null) {
-                    logger.e(TAG, "decode video error, surface is null")
+                    LogUtil.e(TAG, "decode video error, surface is null")
                 } else {
                     decodeVideo(context, surface)
                 }
@@ -50,7 +49,7 @@ class HardwareDecoder(
                 decodeAudio(context)
             }
         } catch (e: Exception) {
-            logger.e(TAG, e)
+            LogUtil.e(TAG, e)
         }
     }
 
@@ -63,59 +62,41 @@ class HardwareDecoder(
      * 的视频数据，不会映射或复制到 ByteBuffer 缓冲区
      * */
     private fun decodeVideo(context: Context, surface: Surface) {
-        // 1. 获取 MediaExtractor
-        mExtractor.setDataSource(context, fileUri, null)
-        // 2. 找到视频相关信息
-        val (mimeType, trackIndex, videoFormat) = findMediaFormat()
-        if (trackIndex < 0 || videoFormat == null) {
+        if (!configMedia(context)) {
             return
         }
-        mExtractor.selectTrack(trackIndex)
 
         // 获取视频信息
         /*val width = videoFormat?.getInteger(MediaFormat.KEY_WIDTH) ?: 0
         val height = videoFormat?.getInteger(MediaFormat.KEY_HEIGHT) ?: 0
         val time = (videoFormat?.getLong(MediaFormat.KEY_DURATION) ?: 0) / 1000000 */
 
-        // 3. 创建视频解码器
-        val videoDecoder = MediaCodec.createDecoderByType(mimeType)
+        createAndDecode(mediaInfo!!.mimeType, mediaInfo!!.mediaFormat)
 
-        videoDecoder.configure(videoFormat, surface, null, 0)
-        videoDecoder.start()
-
-        val startMs = System.currentTimeMillis()
-        var outputDone = false
-        var inputDone = false
-
-        while (!outputDone) {
-            if (!inputDone) {
-                inputDone = videoDecoder.inputData(mExtractor)
-            }
-            outputDone = videoDecoder.outputData(startMs)
-        }
-
-        mExtractor.release()
-        videoDecoder.stop()
-        videoDecoder.release()
+        release()
     }
 
     /**
      * 使用协程同步解码音频
      * */
     private fun decodeAudio(context: Context) {
-        // 1. 获取 MediaExtractor
-        mExtractor.setDataSource(context, fileUri, null)
-        // 2. 找到音频相关信息
-        val (mimeType, trackIndex, mediaFormat) = findMediaFormat()
-        if (trackIndex < 0 || mediaFormat == null) {
+        if (!configMedia(context)) {
             return
         }
-        mExtractor.selectTrack(trackIndex)
 
+        createAndConfigAudioPlayer()
+
+        // 4. 创建解码器并解码
+        createAndDecode(mediaInfo!!.mimeType, mediaInfo!!.mediaFormat)
+
+        release()
+    }
+
+    private fun createAndConfigAudioPlayer() {
         // 采样率
-        val sampleRate = mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE) ?: 0
+        val sampleRate = mediaInfo!!.mediaFormat!!.getInteger(MediaFormat.KEY_SAMPLE_RATE)
         // 声道数
-        val channelCount = mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT) ?: 0
+        val channelCount = mediaInfo!!.mediaFormat!!.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
         // 采样位数
         val sampleWidth = AudioFormat.ENCODING_PCM_16BIT
 
@@ -127,7 +108,7 @@ class HardwareDecoder(
             sampleWidth
         )
         // 说明 https://stackoverflow.com/questions/50866991/android-audiotrack-playback-fast
-        val audioTrack = AudioTrack(
+        audioPlayer = AudioTrack(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -141,15 +122,42 @@ class HardwareDecoder(
             AudioTrack.MODE_STREAM,
             AudioManager.AUDIO_SESSION_ID_GENERATE
         )
-        audioTrack.play()
+        audioPlayer.play()
+    }
 
-        // 4. 创建音频解码器
-        val audioDecoder = MediaCodec.createDecoderByType(mimeType)
+    private fun configMedia(context: Context): Boolean {
+        // 1. 获取 MediaExtractor
+        mExtractor.setDataSource(context, fileUri, null)
+        // 2. 找到音频相关信息
+        mediaInfo = findMediaFormat()
+        if (mediaInfo!!.trackIndex < 0 || mediaInfo!!.mediaFormat == null) {
+            return false
+        }
+        mExtractor.selectTrack(mediaInfo!!.trackIndex)
 
-        audioDecoder.configure(mediaFormat, null, null, 0)
-        audioDecoder.start()
+        return true
+    }
 
-        val audioBufferInfo = MediaCodec.BufferInfo()
+    private fun release() {
+        mExtractor.release()
+        decoder.stop()
+        decoder.release()
+        if (!isVideo) {
+            audioPlayer.stop()
+            audioPlayer.release()
+        }
+    }
+
+    private fun createAndDecode(
+        mimeType: String,
+        mediaFormat: MediaFormat?,
+    ) {
+        // 3. 创建解码器
+        decoder = MediaCodec.createDecoderByType(mimeType)
+        // 4. 配置并开始解码
+        decoder.configure(mediaFormat, null, null, 0)
+        decoder.start()
+
         val startMs = System.currentTimeMillis()
         var inputDone = false
         var outputDone = false
@@ -157,16 +165,14 @@ class HardwareDecoder(
         while (!outputDone) {
             // 将资源传递到解码器
             if (!inputDone) {
-                inputDone = audioDecoder.inputData(mExtractor)
+                inputDone = decoder.inputData(mExtractor)
             }
-            outputDone = audioDecoder.outputAudioData(audioTrack, audioBufferInfo, startMs)
+            outputDone = if (isVideo) {
+                decoder.outputData(startMs)
+            } else {
+                decoder.outputAudioData(audioPlayer, startMs)
+            }
         }
-
-        mExtractor.release()
-        audioDecoder.stop()
-        audioDecoder.release()
-        audioTrack.stop()
-        audioTrack.release()
     }
 
     /**
@@ -182,17 +188,17 @@ class HardwareDecoder(
         // 3. 往 InputBuffer 里面写入数据。返回的是写入的实际数据量，-1 表示已全部写入
         val sampleSize = mExtractor?.readSampleData(inputBuffer, 0) ?: -1
         // 4. 数据入队
-        if (sampleSize >= 0) {
+        return if (sampleSize >= 0) {
             // 填充好的数据写入 InputBuffer，分别设置 size 和 sampleTime
             // 这里 sampleTime 不一定是顺序来的，所以需要缓冲区来调节顺序
             queueInputBuffer(inputBufferIndex, 0, sampleSize, mExtractor?.sampleTime ?: 0, 0)
             // 在 MediaExtractor 执行完一次 readSampleData 方法后，
             // 需要调用 advance() 去跳到下一个 sample， 然后再次读取数据(读取下次采样视频帧)
             mExtractor?.advance()
-            return false
+            false
         } else {
             queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-            return true
+            true
         }
     }
 
@@ -202,7 +208,7 @@ class HardwareDecoder(
     private fun MediaCodec.outputData(startMs: Long): Boolean {
         val videoBufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(videoBufferInfo, HardwareDecoder.TIMEOUT)
+        val outputBufferIndex = dequeueOutputBuffer(videoBufferInfo, TIMEOUT)
         if (outputBufferIndex < 0) {
             return false
         }
@@ -222,11 +228,11 @@ class HardwareDecoder(
      * */
     private fun MediaCodec.outputAudioData(
         audioTrack: AudioTrack,
-        audioBufferInfo: MediaCodec.BufferInfo,
         startMs: Long
     ): Boolean {
+        val audioBufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, HardwareDecoder.TIMEOUT)
+        val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, TIMEOUT)
         if (outputBufferIndex < 0 || audioBufferInfo.size <= 0) {
             return false
         }
@@ -235,6 +241,7 @@ class HardwareDecoder(
         val pcmData = ByteArray(audioBufferInfo.size)
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
         sleep(audioBufferInfo, startMs)
+        // 读取缓存到数组
         byteBuffer.position(0)
         byteBuffer.get(pcmData, 0, audioBufferInfo.size)
         byteBuffer.clear()

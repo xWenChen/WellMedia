@@ -8,7 +8,7 @@ package com.mustly.wellmedia.lib.commonlib.log
  * version   1.0
  * modify by
  */
-abstract class ILog(private val isLogEnable: Boolean = true) {
+abstract class ILog {
     fun v(tag: String = "", msg: String = "") {
         if (!isLogEnable) {
             return
@@ -46,10 +46,11 @@ abstract class ILog(private val isLogEnable: Boolean = true) {
         realE(tag, msg, error)
     }
 
-    abstract fun realV(tag: String = "", msg: String = "")
-    abstract fun realD(tag: String = "", msg: String = "")
-    abstract fun realI(tag: String = "", msg: String = "")
-    abstract fun realW(tag: String = "", msg: String = "")
-    abstract fun realE(tag: String = "", error: Throwable? = null)
-    abstract fun realE(tag: String = "", msg: String = "", error: Throwable? = null)
+    abstract var isLogEnable: Boolean
+    protected abstract fun realV(tag: String = "", msg: String = "")
+    protected abstract fun realD(tag: String = "", msg: String = "")
+    protected abstract fun realI(tag: String = "", msg: String = "")
+    protected abstract fun realW(tag: String = "", msg: String = "")
+    protected abstract fun realE(tag: String = "", error: Throwable? = null)
+    protected abstract fun realE(tag: String = "", msg: String = "", error: Throwable? = null)
 }
