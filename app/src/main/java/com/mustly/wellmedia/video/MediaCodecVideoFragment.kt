@@ -3,7 +3,6 @@ package com.mustly.wellmedia.video
 import android.content.Context
 import android.media.*
 import android.net.Uri
-import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
 import android.widget.SeekBar
@@ -15,10 +14,7 @@ import com.mustly.wellmedia.databinding.FragmentMediaCodecVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.lib.medialib.base.PlayState
 import com.mustly.wellmedia.lib.medialib.base.isPlayState
-import com.mustly.wellmedia.utils.HardwareDecoder
-import com.mustly.wellmedia.utils.runResult
-import com.mustly.wellmedia.utils.stringRes
-import com.mustly.wellmedia.utils.uriPath
+import com.mustly.wellmedia.utils.*
 import kotlinx.coroutines.*
 
 /**
@@ -49,25 +45,14 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
     private var scheduledJob: Job? = null
 
-    private var videoDecoder: HardwareDecoder? = null
-    private var audioDecoder: HardwareDecoder? = null
+    private var decoder: DecoderWrapper? = null
 
     override fun initView(rootView: View) {
-        videoDecoder = HardwareDecoder(true, Uri.parse(R.raw.tanaka_asuka.uriPath()))
-        audioDecoder = HardwareDecoder(false, Uri.parse(R.raw.tanaka_asuka.uriPath()))
+        decoder = DecoderWrapper(Uri.parse(R.raw.tanaka_asuka.uriPath()))
 
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                lifecycleScope.runResult(
-                    doOnIo = {
-                        videoDecoder?.start(requireContext(), holder.surface)
-                    }
-                )
-                lifecycleScope.runResult(
-                    doOnIo = {
-                        audioDecoder?.start(requireContext())
-                    }
-                )
+                decoder?.start(requireContext(), lifecycleScope, holder.surface)
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -202,10 +187,8 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
         stopCheckTime()
 
-        videoDecoder?.release()
-        audioDecoder?.release()
-        videoDecoder = null
-        audioDecoder = null
+        decoder?.stop()
+        decoder = null
     }
 
     private fun MediaPlayer.notPlay(): Boolean {
