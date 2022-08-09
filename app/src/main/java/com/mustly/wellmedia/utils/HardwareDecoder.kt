@@ -66,12 +66,7 @@ class HardwareDecoder(
             return
         }
 
-        // 获取视频信息
-        /*val width = videoFormat?.getInteger(MediaFormat.KEY_WIDTH) ?: 0
-        val height = videoFormat?.getInteger(MediaFormat.KEY_HEIGHT) ?: 0
-        val time = (videoFormat?.getLong(MediaFormat.KEY_DURATION) ?: 0) / 1000000 */
-
-        createAndDecode(mediaInfo!!.mimeType, mediaInfo!!.mediaFormat)
+        createAndDecode()
 
         release()
     }
@@ -87,7 +82,7 @@ class HardwareDecoder(
         createAndConfigAudioPlayer()
 
         // 4. 创建解码器并解码
-        createAndDecode(mediaInfo!!.mimeType, mediaInfo!!.mediaFormat)
+        createAndDecode()
 
         release()
     }
@@ -138,7 +133,7 @@ class HardwareDecoder(
         return true
     }
 
-    private fun release() {
+    fun release() {
         mExtractor.release()
         decoder.stop()
         decoder.release()
@@ -148,14 +143,11 @@ class HardwareDecoder(
         }
     }
 
-    private fun createAndDecode(
-        mimeType: String,
-        mediaFormat: MediaFormat?,
-    ) {
+    private fun createAndDecode() {
         // 3. 创建解码器
-        decoder = MediaCodec.createDecoderByType(mimeType)
+        decoder = MediaCodec.createDecoderByType(mediaInfo!!.mimeType)
         // 4. 配置并开始解码
-        decoder.configure(mediaFormat, null, null, 0)
+        decoder.configure(mediaInfo!!.mediaFormat, null, null, 0)
         decoder.start()
 
         val startMs = System.currentTimeMillis()

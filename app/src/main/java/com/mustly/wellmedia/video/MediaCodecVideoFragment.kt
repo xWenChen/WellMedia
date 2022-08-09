@@ -49,23 +49,23 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
     private var scheduledJob: Job? = null
 
+    private var videoDecoder: HardwareDecoder? = null
+    private var audioDecoder: HardwareDecoder? = null
+
     override fun initView(rootView: View) {
+        videoDecoder = HardwareDecoder(true, Uri.parse(R.raw.tanaka_asuka.uriPath()))
+        audioDecoder = HardwareDecoder(false, Uri.parse(R.raw.tanaka_asuka.uriPath()))
+
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 lifecycleScope.runResult(
                     doOnIo = {
-                        HardwareDecoder(
-                            true,
-                            Uri.parse(R.raw.tanaka_asuka.uriPath())
-                        ).start(requireContext(), holder.surface)
+                        videoDecoder?.start(requireContext(), holder.surface)
                     }
                 )
                 lifecycleScope.runResult(
                     doOnIo = {
-                        HardwareDecoder(
-                            false,
-                            Uri.parse(R.raw.tanaka_asuka.uriPath())
-                        ).start(requireContext())
+                        audioDecoder?.start(requireContext())
                     }
                 )
             }
@@ -201,6 +201,11 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         mediaPlayer.release()*/
 
         stopCheckTime()
+
+        videoDecoder?.release()
+        audioDecoder?.release()
+        videoDecoder = null
+        audioDecoder = null
     }
 
     private fun MediaPlayer.notPlay(): Boolean {
@@ -225,6 +230,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         "$timeNumber"
     }
 
+    // 检查进度条时间
     private fun startCheckTime(action: () -> Unit) {
         stopCheckTime()
         scheduledJob = lifecycleScope.launch(Dispatchers.IO) {
