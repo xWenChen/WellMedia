@@ -5,7 +5,9 @@ import android.media.*
 import android.net.Uri
 import android.view.Surface
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
+import com.mustly.wellmedia.lib.medialib.base.PlayState
 import com.mustly.wellmedia.lib.medialib.base.bean.HardwareMediaInfo
+import java.util.concurrent.locks.ReentrantLock
 
 /**
  * description:
@@ -26,6 +28,14 @@ class HardwareDecoder(
         const val TIMEOUT = 10000L
     }
 
+    var lock = ReentrantLock()
+    var state = PlayState.UNINITIALIZED
+        set(value) {
+            lock.lock()
+            field = value
+            lock.unlock()
+        }
+
     /**
      * 音视频分离器
      * */
@@ -34,6 +44,9 @@ class HardwareDecoder(
     lateinit var decoder: MediaCodec
     // 音频播放器，仅解码音频时有效
     lateinit var audioPlayer: AudioTrack
+
+    // 只有视频用得上 surface
+    var surface: Surface? = null
 
     var mediaInfo: HardwareMediaInfo? = null
 
@@ -65,6 +78,8 @@ class HardwareDecoder(
         if (!configMedia(context)) {
             return
         }
+
+        this.surface = surface
 
         createAndDecode()
 
@@ -126,29 +141,37 @@ class HardwareDecoder(
         // 2. 找到音频相关信息
         mediaInfo = findMediaFormat()
         if (mediaInfo!!.trackIndex < 0 || mediaInfo!!.mediaFormat == null) {
+            state = PlayState.ERROR
             return false
         }
         mExtractor.selectTrack(mediaInfo!!.trackIndex)
-
         return true
     }
 
     fun release() {
         mExtractor.release()
-        decoder.stop()
         decoder.release()
         if (!isVideo) {
             audioPlayer.stop()
             audioPlayer.release()
         }
+        state = PlayState.UNINITIALIZED
     }
 
+    /**
+     * 只有视频才传入 surface
+     * */
     private fun createAndDecode() {
         // 3. 创建解码器
         decoder = MediaCodec.createDecoderByType(mediaInfo!!.mimeType)
         // 4. 配置并开始解码
-        decoder.configure(mediaInfo!!.mediaFormat, null, null, 0)
+        if (isVideo) {
+            decoder.configure(mediaInfo!!.mediaFormat, surface, null, 0)
+        } else {
+            decoder.configure(mediaInfo!!.mediaFormat, null, null, 0)
+        }
         decoder.start()
+        state = PlayState.PLAYING
 
         val startMs = System.currentTimeMillis()
         var inputDone = false
@@ -162,7 +185,7 @@ class HardwareDecoder(
             outputDone = if (isVideo) {
                 decoder.outputData(startMs)
             } else {
-                decoder.outputAudioData(audioPlayer, startMs)
+                decoder.outputAudioData(startMs)
             }
         }
     }
@@ -171,6 +194,9 @@ class HardwareDecoder(
      * 原始数据写入解码器
      * */
     private fun MediaCodec.inputData(mExtractor: MediaExtractor?): Boolean {
+        if (!isPlaying()) {
+            return true
+        }
         // 1. dequeue: 出列，拿到一个输入缓冲区的index，因为有好几个缓冲区来缓冲数据. -1表示暂时没有可用的
         val inputBufferIndex = dequeueInputBuffer(TIMEOUT)
         if (inputBufferIndex < 0) return false
@@ -209,6 +235,7 @@ class HardwareDecoder(
         // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
         // 如果缓冲区里的展示时间(PTS) > 当前视频播放的进度，就休眠一下(视频解析过快，需要缓缓)
         sleep(videoBufferInfo, startMs)
+        LogUtil.d(TAG, "video time: ${mExtractor.sampleTime}")
         // 将该ByteBuffer释放掉，以供缓冲区的循环使用
         releaseOutputBuffer(outputBufferIndex, true)
 
@@ -219,9 +246,13 @@ class HardwareDecoder(
      * 从解码器获取解码后的音频数据
      * */
     private fun MediaCodec.outputAudioData(
-        audioTrack: AudioTrack,
         startMs: Long
     ): Boolean {
+
+        if (!isPlaying()) {
+            return true
+        }
+
         val audioBufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
         val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, TIMEOUT)
@@ -233,13 +264,14 @@ class HardwareDecoder(
         val pcmData = ByteArray(audioBufferInfo.size)
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
         sleep(audioBufferInfo, startMs)
+        LogUtil.d(TAG, "audio time: ${mExtractor.sampleTime}")
         // 读取缓存到数组
         byteBuffer.position(0)
         byteBuffer.get(pcmData, 0, audioBufferInfo.size)
         byteBuffer.clear()
         // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
         // 数据写入播放器
-        audioTrack.write(pcmData, audioBufferInfo.offset, audioBufferInfo.offset + audioBufferInfo.size)
+        audioPlayer.write(pcmData, audioBufferInfo.offset, audioBufferInfo.offset + audioBufferInfo.size)
         // 将该ByteBuffer释放掉，以供缓冲区的循环使用
         releaseOutputBuffer(outputBufferIndex, true)
 
@@ -261,6 +293,10 @@ class HardwareDecoder(
         }
 
         return HardwareMediaInfo("", -1, null)
+    }
+
+    fun isPlaying(): Boolean {
+        return state == PlayState.PLAYING || state == PlayState.PAUSED
     }
 
     private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo, startMs: Long) {

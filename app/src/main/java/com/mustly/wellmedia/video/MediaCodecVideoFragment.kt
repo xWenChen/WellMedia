@@ -45,10 +45,10 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
     private var scheduledJob: Job? = null
 
-    private var decoder: DecoderWrapper? = null
+    private var decoder: DecodeManager? = null
 
     override fun initView(rootView: View) {
-        decoder = DecoderWrapper(Uri.parse(R.raw.tanaka_asuka.uriPath()))
+        decoder = DecodeManager(Uri.parse(R.raw.tanaka_asuka.uriPath()))
 
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
