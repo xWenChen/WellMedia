@@ -52,15 +52,7 @@ class HardwareDecoder(
 
     fun start(context: Context, surface: Surface? = null) {
         try {
-            if (isVideo) {
-                if (surface == null) {
-                    LogUtil.e(TAG, "decode video error, surface is null")
-                } else {
-                    decodeVideo(context, surface)
-                }
-            } else {
-                decodeAudio(context)
-            }
+            decode(context, surface)
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
@@ -74,29 +66,17 @@ class HardwareDecoder(
      * 当使用原始视频数据时，最好采用 Surface 作为输入源来替代 ByteBuffer，这样效率更高，因为 Surface 使用的更底层
      * 的视频数据，不会映射或复制到 ByteBuffer 缓冲区
      * */
-    private fun decodeVideo(context: Context, surface: Surface) {
+    private fun decode(context: Context, surface: Surface? = null) {
         if (!configMedia(context)) {
             return
         }
 
-        this.surface = surface
-
-        createAndDecode()
-
-        release()
-    }
-
-    /**
-     * 使用协程同步解码音频
-     * */
-    private fun decodeAudio(context: Context) {
-        if (!configMedia(context)) {
-            return
+        if (isVideo) {
+            this.surface = surface
+        } else {
+            createAndConfigAudioPlayer()
         }
 
-        createAndConfigAudioPlayer()
-
-        // 4. 创建解码器并解码
         createAndDecode()
 
         release()
@@ -145,6 +125,13 @@ class HardwareDecoder(
             return false
         }
         mExtractor.selectTrack(mediaInfo!!.trackIndex)
+
+        mediaInfo!!.mediaFormat!!.apply {
+            if (containsKey(MediaFormat.KEY_DURATION)) {
+                LogUtil.d(TAG, "duration = ${getLong(MediaFormat.KEY_DURATION)}")
+            }
+        }
+
         return true
     }
 
@@ -182,11 +169,7 @@ class HardwareDecoder(
             if (!inputDone) {
                 inputDone = decoder.inputData(mExtractor)
             }
-            outputDone = if (isVideo) {
-                decoder.outputData(startMs)
-            } else {
-                decoder.outputAudioData(startMs)
-            }
+            outputDone = decoder.outputData(startMs)
         }
     }
 
@@ -221,61 +204,43 @@ class HardwareDecoder(
     }
 
     /**
-     * 从解码器获取解码后的数据
-     * */
-    private fun MediaCodec.outputData(startMs: Long): Boolean {
-        val videoBufferInfo = MediaCodec.BufferInfo()
-        // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(videoBufferInfo, TIMEOUT)
-        if (outputBufferIndex < 0) {
-            return false
-        }
-
-        // 直接渲染到 Surface 时使用不到 outputBuffer
-        // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
-        // 如果缓冲区里的展示时间(PTS) > 当前视频播放的进度，就休眠一下(视频解析过快，需要缓缓)
-        sleep(videoBufferInfo, startMs)
-        LogUtil.d(TAG, "video time: ${mExtractor.sampleTime}")
-        // 将该ByteBuffer释放掉，以供缓冲区的循环使用
-        releaseOutputBuffer(outputBufferIndex, true)
-
-        return videoBufferInfo.flags.and(MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
-    }
-
-    /**
      * 从解码器获取解码后的音频数据
      * */
-    private fun MediaCodec.outputAudioData(
-        startMs: Long
-    ): Boolean {
-
+    private fun MediaCodec.outputData(startMs: Long): Boolean {
         if (!isPlaying()) {
             return true
         }
 
-        val audioBufferInfo = MediaCodec.BufferInfo()
+        val bufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
-        val outputBufferIndex = dequeueOutputBuffer(audioBufferInfo, TIMEOUT)
-        if (outputBufferIndex < 0 || audioBufferInfo.size <= 0) {
+        val outputBufferIndex = dequeueOutputBuffer(bufferInfo, TIMEOUT)
+        if (outputBufferIndex < 0 || bufferInfo.size <= 0) {
             return false
         }
 
-        val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return false
-        val pcmData = ByteArray(audioBufferInfo.size)
+        var logDesc = "video"
+        if (!isVideo) {
+            val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return false
+            val pcmData = ByteArray(bufferInfo.size)
+
+            // 读取缓存到数组
+            byteBuffer.position(0)
+            byteBuffer.get(pcmData, 0, bufferInfo.size)
+            byteBuffer.clear()
+            // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
+            // 数据写入播放器
+            audioPlayer.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
+            logDesc = "audio"
+        }
+        // 直接渲染到 Surface 时使用不到 outputBuffer
+        // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
-        sleep(audioBufferInfo, startMs)
-        LogUtil.d(TAG, "audio time: ${mExtractor.sampleTime}")
-        // 读取缓存到数组
-        byteBuffer.position(0)
-        byteBuffer.get(pcmData, 0, audioBufferInfo.size)
-        byteBuffer.clear()
-        // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
-        // 数据写入播放器
-        audioPlayer.write(pcmData, audioBufferInfo.offset, audioBufferInfo.offset + audioBufferInfo.size)
+        sleep(bufferInfo, startMs)
+        LogUtil.d(TAG, "$logDesc time: ${mExtractor.sampleTime.toFloat() / 1000000} s")
         // 将该ByteBuffer释放掉，以供缓冲区的循环使用
         releaseOutputBuffer(outputBufferIndex, true)
 
-        return audioBufferInfo.flags.and(MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
+        return bufferInfo.flags.and(MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
     }
 
     fun findMediaFormat(): HardwareMediaInfo {
