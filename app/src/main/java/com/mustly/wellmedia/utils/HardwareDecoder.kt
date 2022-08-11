@@ -126,11 +126,7 @@ class HardwareDecoder(
         }
         mExtractor.selectTrack(mediaInfo!!.trackIndex)
 
-        mediaInfo!!.mediaFormat!!.apply {
-            if (containsKey(MediaFormat.KEY_DURATION)) {
-                LogUtil.d(TAG, "duration = ${getLong(MediaFormat.KEY_DURATION)}")
-            }
-        }
+        infoLog()
 
         return true
     }
@@ -218,7 +214,6 @@ class HardwareDecoder(
             return false
         }
 
-        var logDesc = "video"
         if (!isVideo) {
             val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return false
             val pcmData = ByteArray(bufferInfo.size)
@@ -230,13 +225,11 @@ class HardwareDecoder(
             // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
             // 数据写入播放器
             audioPlayer.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
-            logDesc = "audio"
         }
         // 直接渲染到 Surface 时使用不到 outputBuffer
         // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
         sleep(bufferInfo, startMs)
-        LogUtil.d(TAG, "$logDesc time: ${mExtractor.sampleTime.toFloat() / 1000000} s")
         // 将该ByteBuffer释放掉，以供缓冲区的循环使用
         releaseOutputBuffer(outputBufferIndex, true)
 
@@ -270,5 +263,14 @@ class HardwareDecoder(
         if (ffTime > 0) {
             Thread.sleep(ffTime)
         }
+    }
+
+    private fun infoLog() = mediaInfo?.apply {
+        var logStr = "mimeType = $mimeType, duration = $duration"
+        if (isVideo) {
+            logStr = "$logStr, width = $width, height = $height"
+        }
+
+        LogUtil.d(TAG, "mediaInfo >>> $logStr")
     }
 }

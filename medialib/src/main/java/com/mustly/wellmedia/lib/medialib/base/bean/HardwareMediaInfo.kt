@@ -21,4 +21,26 @@ data class HardwareMediaInfo(
         mimeType.startsWith("audio/") -> MediaType.AUDIO
         else -> MediaType.UNKNOWN
     }
+
+    val duration: Long
+        get() {
+            return if (mediaFormat?.containsKey(MediaFormat.KEY_DURATION) == true)
+                mediaFormat.getLong(MediaFormat.KEY_DURATION)
+            else
+                0L
+        }
+    val width: Int
+        get() {
+            return if (mediaFormat?.containsKey(MediaFormat.KEY_WIDTH) == true)
+                mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+            else
+                0
+        }
+    val height: Int
+        get() {
+            return if (mediaFormat?.containsKey(MediaFormat.KEY_HEIGHT) == true)
+                mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
+            else
+                0
+        }
 }
