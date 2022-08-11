@@ -63,14 +63,6 @@ abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
         }
     }
 
-    fun keepScreenOn(enable: Boolean) {
-        if (enable) {
-            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-    }
-
     abstract fun preParseData()
 
     abstract fun initView()
