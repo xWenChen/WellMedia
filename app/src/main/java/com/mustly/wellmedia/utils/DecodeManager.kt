@@ -45,7 +45,7 @@ class DecodeManager(val fileUri: Uri) {
             return
         }
         job = activity.lifecycleScope.launch(Dispatchers.Main) {
-            kotlin.runCatching {
+            try {
                 activity.keepScreenOn(true)
                 withContext(Dispatchers.IO) {
                     // 勇于音频、视频 PTS 同步校准
@@ -54,13 +54,12 @@ class DecodeManager(val fileUri: Uri) {
                     videoDecoder?.startMs = startTime
                     audioDecoder?.startMs = startTime
 
-                    launch { videoDecoder?.decode(activity, surface) }
+                    launch {  videoDecoder?.decode(activity, surface) }
                     launch { audioDecoder?.decode(activity) }
                 }
-
                 activity.keepScreenOn(false)
-            }.onFailure {
-                LogUtil.e(TAG, it)
+            } catch (e: Exception) {
+                LogUtil.e(TAG, e)
                 activity.keepScreenOn(false)
             }
         }
