@@ -236,7 +236,7 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R
             mediaPlayer.prePareAndStart()
             return
         }
-        if (playState.isPlayState(PlayState.COMPLETED)) {
+        if (playState.isPlayState(PlayState.STOPPED)) {
             mediaPlayer.seekTo(0)
         }
         if (mediaPlayer.notPlay()) {

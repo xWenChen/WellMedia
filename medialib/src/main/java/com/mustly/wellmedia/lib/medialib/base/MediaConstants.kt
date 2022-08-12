@@ -7,7 +7,7 @@ enum class PlayState {
     PREPARED,
     PLAYING,
     PAUSED,
-    COMPLETED,
+    STOPPED,
     ERROR,
 }
 

@@ -47,15 +47,18 @@ class DecodeManager(val fileUri: Uri) {
         job = activity.lifecycleScope.launch(Dispatchers.Main) {
             try {
                 activity.keepScreenOn(true)
+
                 withContext(Dispatchers.IO) {
-                    // 勇于音频、视频 PTS 同步校准
+                    // 用于音频、视频 PTS 同步校准
                     val startTime = System.currentTimeMillis()
 
                     videoDecoder?.startMs = startTime
                     audioDecoder?.startMs = startTime
 
-                    launch {  videoDecoder?.decode(activity, surface) }
-                    launch { audioDecoder?.decode(activity) }
+                    val videoDefer = async { videoDecoder?.decode(activity, surface) }
+                    val audioDefer = async { audioDecoder?.decode(activity) }
+
+                    videoDefer.await() to audioDefer.await()
                 }
                 activity.keepScreenOn(false)
             } catch (e: Exception) {

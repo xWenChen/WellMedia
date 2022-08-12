@@ -28,13 +28,7 @@ class HardwareDecoder(
         const val TIMEOUT = 10000L
     }
 
-    var lock = ReentrantLock()
     var state = PlayState.UNINITIALIZED
-        set(value) {
-            lock.lock()
-            field = value
-            lock.unlock()
-        }
 
     /**
      * 音视频分离器
@@ -65,8 +59,6 @@ class HardwareDecoder(
             return
         }
 
-        debugLog()
-
         if (isVideo) {
             this.surface = surface
         } else {
@@ -79,19 +71,12 @@ class HardwareDecoder(
     }
 
     private fun createAndConfigAudioPlayer() {
-        // 采样率
-        val sampleRate = mediaInfo!!.mediaFormat!!.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-        // 声道数
-        val channelCount = mediaInfo!!.mediaFormat!!.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-        // 采样位数
-        val sampleWidth = AudioFormat.ENCODING_PCM_16BIT
-
         // 3. 创建音频播放器
         // 初始化 AudioTrack
         val minBufferSize = AudioTrack.getMinBufferSize(
-            sampleRate,
-            if (channelCount == 1) AudioFormat.CHANNEL_OUT_MONO else AudioFormat.CHANNEL_OUT_STEREO,
-            sampleWidth
+            mediaInfo!!.sampleRate,
+            mediaInfo!!.voiceTrack,
+            mediaInfo!!.sampleDepth
         )
         // 说明 https://stackoverflow.com/questions/50866991/android-audiotrack-playback-fast
         audioPlayer = AudioTrack(
@@ -100,15 +85,16 @@ class HardwareDecoder(
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build(),
             AudioFormat.Builder()
-                .setSampleRate(sampleRate)
-                .setChannelMask(if (channelCount == 1) AudioFormat.CHANNEL_OUT_MONO else AudioFormat.CHANNEL_OUT_STEREO)
-                .setEncoding(sampleWidth)
+                .setSampleRate(mediaInfo!!.sampleRate)
+                .setChannelMask(mediaInfo!!.voiceTrack)
+                .setEncoding(mediaInfo!!.sampleDepth)
                 .build(),
             minBufferSize,
             AudioTrack.MODE_STREAM,
             AudioManager.AUDIO_SESSION_ID_GENERATE
         )
         audioPlayer.play()
+        updatePlayState()
     }
 
     private fun configMedia(context: Context): Boolean {
@@ -117,7 +103,6 @@ class HardwareDecoder(
         // 2. 找到音频相关信息
         mediaInfo = findMediaFormat()
         if (mediaInfo!!.trackIndex < 0 || mediaInfo!!.mediaFormat == null) {
-            state = PlayState.ERROR
             return false
         }
         mExtractor.selectTrack(mediaInfo!!.trackIndex)
@@ -167,16 +152,20 @@ class HardwareDecoder(
      * */
     private fun MediaCodec.inputData(mExtractor: MediaExtractor?): Boolean {
         if (!isPlaying()) {
+            LogUtil.d(TAG, "not playing >>> play state = $state")
             return true
         }
         // 1. dequeue: 出列，拿到一个输入缓冲区的index，因为有好几个缓冲区来缓冲数据. -1表示暂时没有可用的
         val inputBufferIndex = dequeueInputBuffer(TIMEOUT)
+        LogUtil.d(TAG, "inputBufferIndex = $inputBufferIndex")
         if (inputBufferIndex < 0) return false
+
 
         // 2. 使用返回的 inputBuffer 的 index 得到一个ByteBuffer，可以放数据了
         val inputBuffer = getInputBuffer(inputBufferIndex) ?: return false
         // 3. 往 InputBuffer 里面写入数据。返回的是写入的实际数据量，-1 表示已全部写入
         val sampleSize = mExtractor?.readSampleData(inputBuffer, 0) ?: -1
+        LogUtil.d(TAG, "readSampleData = $sampleSize")
         // 4. 数据入队
         return if (sampleSize >= 0) {
             // 填充好的数据写入 InputBuffer，分别设置 size 和 sampleTime
@@ -197,12 +186,14 @@ class HardwareDecoder(
      * */
     private fun MediaCodec.outputData(): Boolean {
         if (!isPlaying()) {
+            LogUtil.d(TAG, "not playing >>> play state = $state")
             return true
         }
 
         val bufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
         val outputBufferIndex = dequeueOutputBuffer(bufferInfo, TIMEOUT)
+        LogUtil.d(TAG, "outputBufferIndex = $outputBufferIndex, bufferSize = ${bufferInfo.size}")
         if (outputBufferIndex < 0 || bufferInfo.size <= 0) {
             return false
         }
@@ -216,6 +207,11 @@ class HardwareDecoder(
             byteBuffer.get(pcmData, 0, bufferInfo.size)
             byteBuffer.clear()
             // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
+            LogUtil.d(TAG, "pcmData.size = ${pcmData.size}, " +
+                "bufferInfo.offset = ${bufferInfo.offset}, " +
+                "bufferInfo.size = ${bufferInfo.size}, " +
+                "bufferInfo.offset + bufferInfo.size = ${bufferInfo.offset + bufferInfo.size}"
+            )
             // 数据写入播放器
             audioPlayer.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
         }
@@ -262,8 +258,86 @@ class HardwareDecoder(
         var logStr = "mimeType = $mimeType, duration = $duration"
         if (isVideo) {
             logStr = "$logStr, width = $width, height = $height"
+        } else {
+            logStr = "$logStr, sampleRate = $sampleRate, channelCount = $channelCount, " +
+                "sampleDepth = $sampleDepth"
         }
 
         LogUtil.d(TAG, "mediaInfo >>> $logStr")
+    }
+
+    private fun updatePlayState() = if (isVideo) {
+
+    } else {
+        updateAudioState()
+    }
+
+    /**
+     * AudioTrack 状态说明：
+     * 名词解释：
+     *   ● AP：Application
+     *   ● ADSP：Application DSP
+     *   ● DSP：Digital Signal Processing：数字信号处理单元，通常是硬件，并且通常是芯片的一个组成部分，其他的单元如射频单元等等。
+     *
+     * 四种播放模式(https://www.cnblogs.com/wulizhi/p/8183658.html)：
+     *   ● Deep buffer Playback
+     *   ● Low latency Playback
+     *   ● Offload playback
+     *   ● Mutichannel Playback
+     * 两种状态：
+     *   ● state：状态
+     *       ● STATE_UNINITIALIZED(默认状态)：AudioTrack 创建时没有成功地初始化
+     *       ● STATE_INITIALIZED：AudioTrack 已经是可以使用了
+     *       ● STATE_NO_STATIC_DATA：表示当前是使用 MODE_STATIC ，但是还没往缓冲区中写入数据。当接收数据之后会变为 STATE_INITIALIZED 状态
+     *   ● playstate：播放状态
+     *       ● PLAYSTATE_STOPPED：停止
+     *       ● PLAYSTATE_PAUSED：暂停
+     *       ● PLAYSTATE_PLAYING：播放中
+     *       ● PLAYSTATE_STOPPING(私有状态，外部获取不到)：停止中，等价于：PLAYSTATE_PLAYING
+     *       ● PLAYSTATE_PAUSED_STOPPING(私有状态，外部获取不到)：已暂停，停止中：等价于：PLAYSTATE_PAUSED
+     * 两种数据获取模式：
+     *   ● stream mode：不停写入音频数据
+     *   ● static mode: 一次写入所有音频数据
+     * 关键方法：
+     *   ● AudioTrack 构造函数
+     *      ● static mode：state = STATE_NO_STATIC_DATA
+     *      ● stream mode：state = STATE_INITIALIZED
+     *   ● play()
+     *      ● mState != STATE_INITIALIZED：抛异常
+     *      ● PLAYSTATE_PAUSED_STOPPING：mPlayState = PLAYSTATE_STOPPING(已暂停停止中状态比播放中状态具有更高优先级)
+     *      ● 正常流程：mPlayState = PLAYSTATE_PLAYING(播放中)
+     *   ● pause()
+     *      ● mState != STATE_INITIALIZED：抛异常
+     *      ● PLAYSTATE_STOPPING：mPlayState = PLAYSTATE_PAUSED_STOPPING(停止中比暂停态具有更高优先级)
+     *      ● 正常流程：mPlayState = PLAYSTATE_PAUSED(已暂停)
+     *   ● stop()
+     *      ● mState != STATE_INITIALIZED：抛异常
+     *      ● mOffloaded && mPlayState != PLAYSTATE_PAUSED_STOPPING：mPlayState = PLAYSTATE_STOPPING
+     *      ● 正常流程：mPlayState = PLAYSTATE_STOPPED(已停止)
+     *   ● flush()
+     *      ● mState != STATE_INITIALIZED：不做任何操作
+     *      ● static mode: 不操作
+     *      ● 暂停态：不操作
+     *      ● 停止态：不操作
+     *      ● stream mode 并且 playing 状态下，清除已入队但未播放的数据
+     *   ● release()
+     *      ● 先 stop()
+     *      ● mState = STATE_UNINITIALIZED; mPlayState = PLAYSTATE_STOPPED;
+     * */
+    private fun updateAudioState() {
+        // 需要结合 state 和 PlayState 一起确定
+        state = when (audioPlayer.state) {
+            AudioTrack.STATE_UNINITIALIZED -> PlayState.UNINITIALIZED
+            AudioTrack.STATE_INITIALIZED -> updateInitializedAudioState()
+            AudioTrack.STATE_NO_STATIC_DATA -> PlayState.PREPARED
+            else -> PlayState.ERROR
+        }
+    }
+
+    private fun updateInitializedAudioState() = when (audioPlayer.playState) {
+        AudioTrack.PLAYSTATE_PLAYING -> PlayState.PLAYING
+        AudioTrack.PLAYSTATE_PAUSED -> PlayState.PAUSED
+        AudioTrack.PLAYSTATE_STOPPED -> PlayState.PAUSED
+        else -> PlayState.ERROR
     }
 }
