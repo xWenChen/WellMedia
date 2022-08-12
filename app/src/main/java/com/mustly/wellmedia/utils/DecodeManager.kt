@@ -1,10 +1,11 @@
 package com.mustly.wellmedia.utils
 
-import android.content.Context
 import android.net.Uri
 import android.view.Surface
-import androidx.lifecycle.LifecycleCoroutineScope
-import kotlinx.coroutines.Job
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.mustly.wellmedia.lib.commonlib.log.LogUtil
+import kotlinx.coroutines.*
 
 /**
  * description:
@@ -17,11 +18,14 @@ import kotlinx.coroutines.Job
  * modify by
  */
 class DecodeManager(val fileUri: Uri) {
+    companion object {
+        const val TAG = "DecodeManager"
+    }
+
     private var videoDecoder: HardwareDecoder? = null
     private var audioDecoder: HardwareDecoder? = null
 
-    private var videoJob: Job? = null
-    private var audioJob: Job? = null
+    private var job: Job? = null
 
     init {
         init()
@@ -33,22 +37,38 @@ class DecodeManager(val fileUri: Uri) {
     }
 
     fun start(
-        context: Context,
-        lifecycleScope: LifecycleCoroutineScope,
+        activity: FragmentActivity?,
         surface: Surface? = null
     ) {
-        videoJob = lifecycleScope.runResult(doOnIo = { videoDecoder?.start(context, surface) })
-        audioJob = lifecycleScope.runResult(doOnIo = { audioDecoder?.start(context) })
+        if (activity == null) {
+            LogUtil.e(TAG, "start decode fail, activity == null")
+            return
+        }
+        job = activity.lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                activity.keepScreenOn(true)
+                withContext(Dispatchers.IO) {
+                    // 勇于音频、视频 PTS 同步校准
+                    val startTime = System.currentTimeMillis()
+
+                    videoDecoder?.startMs = startTime
+                    audioDecoder?.startMs = startTime
+
+                    launch {  videoDecoder?.decode(activity, surface) }
+                    launch { audioDecoder?.decode(activity) }
+                }
+                activity.keepScreenOn(false)
+            } catch (e: Exception) {
+                LogUtil.e(TAG, e)
+                activity.keepScreenOn(false)
+            }
+        }
     }
 
     fun stop() {
-        if (videoJob?.isActive == true) {
-            videoJob?.cancel()
-            videoJob = null
-        }
-        if (audioJob?.isActive == true) {
-            audioJob?.cancel()
-            audioJob = null
+        if (job?.isActive == true) {
+            job?.cancel()
+            job = null
         }
         videoDecoder?.release()
         videoDecoder = null

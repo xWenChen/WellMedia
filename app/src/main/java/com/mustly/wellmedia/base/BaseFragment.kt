@@ -7,12 +7,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import androidx.annotation.LayoutRes
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
 import com.mustly.wellmedia.utils.checkAndRequestPermission
+import com.mustly.wellmedia.utils.keepScreenOn
 
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
@@ -56,11 +56,7 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
     }
 
     fun keepScreenOn(enable: Boolean) {
-        if (enable) {
-            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        activity?.keepScreenOn(enable)
     }
 
     abstract fun initView(rootView: View)

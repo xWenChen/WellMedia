@@ -1,6 +1,8 @@
 package com.mustly.wellmedia.utils
 
+import android.app.Activity
 import android.util.Log
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.mustly.wellmedia.MediaApplication
 import kotlinx.coroutines.CoroutineScope
@@ -43,5 +45,13 @@ fun <T> CoroutineScope.runResult(
     }.onFailure {
         Log.e("runResult", "", it)
         doOnFailure?.invoke(this, it)
+    }
+}
+
+fun Activity.keepScreenOn(enable: Boolean) {
+    if (enable) {
+        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    } else {
+        window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 }

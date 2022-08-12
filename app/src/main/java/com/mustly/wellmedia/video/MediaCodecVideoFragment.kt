@@ -52,7 +52,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                decoder?.start(requireContext(), lifecycleScope, holder.surface)
+                decoder?.start(activity, holder.surface)
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {

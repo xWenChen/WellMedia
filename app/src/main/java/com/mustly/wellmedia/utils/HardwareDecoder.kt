@@ -50,13 +50,7 @@ class HardwareDecoder(
 
     var mediaInfo: HardwareMediaInfo? = null
 
-    fun start(context: Context, surface: Surface? = null) {
-        try {
-            decode(context, surface)
-        } catch (e: Exception) {
-            LogUtil.e(TAG, e)
-        }
-    }
+    var startMs = 0L
 
     /**
      * 使用协程同步解码视频
@@ -66,7 +60,7 @@ class HardwareDecoder(
      * 当使用原始视频数据时，最好采用 Surface 作为输入源来替代 ByteBuffer，这样效率更高，因为 Surface 使用的更底层
      * 的视频数据，不会映射或复制到 ByteBuffer 缓冲区
      * */
-    private fun decode(context: Context, surface: Surface? = null) {
+    fun decode(context: Context, surface: Surface? = null) {
         if (!configMedia(context)) {
             return
         }
@@ -128,10 +122,12 @@ class HardwareDecoder(
         }
         mExtractor.selectTrack(mediaInfo!!.trackIndex)
 
+        infoLog()
+
         return true
     }
 
-    fun release() {
+    fun release() = try {
         mExtractor.release()
         decoder.release()
         if (!isVideo) {
@@ -139,6 +135,8 @@ class HardwareDecoder(
             audioPlayer.release()
         }
         state = PlayState.UNINITIALIZED
+    } catch (e: Exception) {
+        LogUtil.e(TAG, e)
     }
 
     /**
@@ -147,16 +145,11 @@ class HardwareDecoder(
     private fun createAndDecode() {
         // 3. 创建解码器
         decoder = MediaCodec.createDecoderByType(mediaInfo!!.mimeType)
-        // 4. 配置并开始解码
-        if (isVideo) {
-            decoder.configure(mediaInfo!!.mediaFormat, surface, null, 0)
-        } else {
-            decoder.configure(mediaInfo!!.mediaFormat, null, null, 0)
-        }
+        // 4. 配置并开始解码，音频的 surface 为空
+        decoder.configure(mediaInfo!!.mediaFormat, surface, null, 0)
         decoder.start()
         state = PlayState.PLAYING
 
-        val startMs = System.currentTimeMillis()
         var inputDone = false
         var outputDone = false
 
@@ -165,7 +158,7 @@ class HardwareDecoder(
             if (!inputDone) {
                 inputDone = decoder.inputData(mExtractor)
             }
-            outputDone = decoder.outputData(startMs)
+            outputDone = decoder.outputData()
         }
     }
 
@@ -202,7 +195,7 @@ class HardwareDecoder(
     /**
      * 从解码器获取解码后的音频数据
      * */
-    private fun MediaCodec.outputData(startMs: Long): Boolean {
+    private fun MediaCodec.outputData(): Boolean {
         if (!isPlaying()) {
             return true
         }
@@ -229,7 +222,7 @@ class HardwareDecoder(
         // 直接渲染到 Surface 时使用不到 outputBuffer
         // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
         // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
-        sleep(bufferInfo, startMs)
+        sleep(bufferInfo)
         // 将该ByteBuffer释放掉，以供缓冲区的循环使用
         releaseOutputBuffer(outputBufferIndex, true)
 
@@ -257,7 +250,7 @@ class HardwareDecoder(
         return state == PlayState.PLAYING || state == PlayState.PAUSED
     }
 
-    private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo, startMs: Long) {
+    private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo) {
         // videoBufferInfo.presentationTimeUs / 1000  PTS 视频的展示时间戳(相对时间)
         val ffTime = startMs + mediaBufferInfo.presentationTimeUs / 1000 - System.currentTimeMillis()
         if (ffTime > 0) {
@@ -265,28 +258,12 @@ class HardwareDecoder(
         }
     }
 
-    private fun debugLog() = mediaInfo?.run {
-        var durationUs = 0L
-        if (mediaFormat!!.containsKey(MediaFormat.KEY_DURATION)) {
-            durationUs = mediaFormat!!.getLong(MediaFormat.KEY_DURATION)
-        }
-        var logStr = "mimeType = $mimeType, duration = $durationUs"
-        if (!isVideo) {
-            LogUtil.d(TAG, "audioInfo >>> $logStr")
-            return@run
+    private fun infoLog() = mediaInfo?.apply {
+        var logStr = "mimeType = $mimeType, duration = $duration"
+        if (isVideo) {
+            logStr = "$logStr, width = $width, height = $height"
         }
 
-        var width = 0
-        var height = 0
-        if (mediaFormat!!.containsKey(MediaFormat.KEY_WIDTH)) {
-            width = mediaFormat!!.getInteger(MediaFormat.KEY_WIDTH)
-        }
-        if (mediaFormat!!.containsKey(MediaFormat.KEY_HEIGHT)) {
-            height = mediaFormat!!.getInteger(MediaFormat.KEY_HEIGHT)
-        }
-
-        logStr = "$logStr, width = $width, height = $height"
-
-        LogUtil.d(TAG, "videoInfo >>> $logStr")
+        LogUtil.d(TAG, "mediaInfo >>> $logStr")
     }
 }
