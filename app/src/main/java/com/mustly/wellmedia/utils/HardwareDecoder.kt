@@ -146,7 +146,9 @@ class HardwareDecoder(
             mExtractor.release()
             releaseDecoder()
             if (!isVideo) {
-                audioTrack.stop()
+                if (audioTrack.state == AudioTrack.STATE_INITIALIZED) {
+                    audioTrack.stop()
+                }
                 audioTrack.release()
             }
             state = MediaCodecState.UNINITIALIZED
@@ -162,6 +164,13 @@ class HardwareDecoder(
     private fun createAndDecode() = try {
         // 3. 创建解码器
         create()
+        startDecode()
+    } catch (e: Exception) {
+        LogUtil.e(TAG, e)
+        state = MediaCodecState.ERROR
+    }
+
+    private fun startDecode() {
         // 4. 配置并开始解码，音频的 surface 为空
         prepare()
         start()
@@ -183,9 +192,12 @@ class HardwareDecoder(
             }
             outputDone = decoder?.outputData() ?: outputDone
         }
-    } catch (e: Exception) {
-        LogUtil.e(TAG, e)
-        state = MediaCodecState.ERROR
+    }
+
+    // 调到指定位置，单位 毫秒
+    fun seekTo(time: Long) {
+        mExtractor.seekTo(time * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+        startDecode()
     }
 
     fun start() {

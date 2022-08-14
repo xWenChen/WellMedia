@@ -54,8 +54,8 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                player?.start(activity, holder.surface)
                 surface = holder.surface
+                startPlay()
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -70,7 +70,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         })
 
         binding.tvCurrentTime.text = R.string.zero_time_text.stringRes
-        binding.tvTimeEnd.text = R.string.zero_time_text.stringRes
+        binding.tvTimeEnd.text = ""
 
         binding.sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -97,14 +97,14 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         }
         binding.btnPause.setOnClickListener {
             if (playState.isPlayState(PlayState.PLAYING)) {
-                stopPlay(true)
+                pausePlay()
             }
         }
         binding.btnReset.setOnClickListener {
             if (playState.isPlayState(PlayState.ERROR)) {
                 //mediaPlayer.prePareAndStart()
             } else {
-                stopPlay()
+                player?.reset()
                 startPlay()
             }
         }
@@ -136,7 +136,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     override fun onPause() {
         super.onPause()
 
-        stopPlay(true)
+        pausePlay()
     }
 
     override fun onDestroy() {
@@ -144,14 +144,14 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
         stopCheckTime()
 
-        player?.stop()
+        player?.destroy()
         player = null
     }
 
     // 毫秒转成格式化的时间字符串
     private fun Int?.formattedTime(): String {
         if (this == null || this <= 0) {
-            return "00:00"
+            return ""
         }
 
         val minutes = this / 1000 / 60
@@ -196,22 +196,20 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     }
 
     private fun setControlInfo() {
-        binding.sbProgress.max = player?.getDuration() ?: 0
-        binding.tvTimeEnd.text = player?.getDuration().formattedTime()
         startCheckTime {
+            binding.tvTimeEnd.apply {
+                if (text.isNullOrBlank()) {
+                    text = player?.getDuration().formattedTime()
+                }
+            }
             binding.tvCurrentTime.text = player?.getCurrentTime().formattedTime()
             binding.sbProgress.progress = player?.getCurrentPosition() ?: 0
         }
         playState = PlayState.PLAYING
     }
 
-    private fun stopPlay(isPaused: Boolean = false) {
-        if (isPaused) {
-            player?.pause()
-        } else {
-            player?.stop()
-            playState = PlayState.UNINITIALIZED
-        }
+    private fun pausePlay() {
+        player?.pause()
         stopCheckTime()
     }
 

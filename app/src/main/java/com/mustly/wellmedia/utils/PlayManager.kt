@@ -29,6 +29,9 @@ class PlayManager(val fileUri: Uri) {
 
     private var job: Job? = null
 
+    private var activity: FragmentActivity? = null
+    private var surface: Surface? = null
+
     init {
         init()
     }
@@ -46,19 +49,17 @@ class PlayManager(val fileUri: Uri) {
             LogUtil.e(TAG, "start decode fail, activity == null")
             return
         }
+        this.activity = activity
+        this.surface = surface
+        // 取消上个解码任务
+        cancelDecode()
         job = activity.lifecycleScope.launch(Dispatchers.Main) {
             try {
                 activity.keepScreenOn(true)
 
                 withContext(Dispatchers.IO) {
-                    // 用于音频、视频 PTS 同步校准
-                    val startTime = System.currentTimeMillis()
-
-                    videoDecoder?.startMs = startTime
-                    audioDecoder?.startMs = startTime
-
+                    syncStartTime()
                     launch { videoDecoder?.decode(activity, surface) }
-
                     launch { audioDecoder?.decode(activity) }
                 }
                 activity.keepScreenOn(false)
@@ -69,20 +70,45 @@ class PlayManager(val fileUri: Uri) {
         }
     }
 
+    private fun syncStartTime() {
+        // 同步时间，用于音频、视频 PTS 同步校准
+        val startTime = System.currentTimeMillis()
+
+        videoDecoder?.startMs = startTime
+        audioDecoder?.startMs = startTime
+    }
+
+    // 跳到指定位置，单位 毫秒
+    fun seekTo(time: Long) {
+        // 停止现在的播放
+        videoDecoder?.stop()
+        audioDecoder?.stop()
+        syncStartTime()
+        videoDecoder?.seekTo(time)
+        audioDecoder?.seekTo(time)
+    }
+
     fun pause() {
         videoDecoder?.pause()
         audioDecoder?.pause()
     }
 
-    fun stop() {
-        if (job?.isActive == true) {
-            job?.cancel()
-            job = null
-        }
+    fun destroy() {
+        cancelDecode()
         videoDecoder?.release()
         videoDecoder = null
         audioDecoder?.release()
         audioDecoder = null
+
+        activity = null
+        surface = null
+    }
+
+    private fun cancelDecode() {
+        if (job?.isActive == true) {
+            job?.cancel()
+            job = null
+        }
     }
 
     fun isStopped(): Boolean {
@@ -118,12 +144,13 @@ class PlayManager(val fileUri: Uri) {
 
     // 单位毫秒
     fun getCurrentTime(): Int {
-        // 文件中 音频、视频 的时长可能不等，取较长的一个时长
+        // 文件中 音频、视频 的时长可能不等，取平均数
         return (videoDecoder?.currentSampleTime to audioDecoder?.currentSampleTime)
             .takeIf {
                 it.first != null && it.second != null
             }?.run {
-                max(first!!.toInt(), second!!.toInt()) / 1000
+                // 2000 = 2 * 1000
+                (first!!.toInt() + second!!.toInt()) / 2000
             } ?: 0
     }
 
