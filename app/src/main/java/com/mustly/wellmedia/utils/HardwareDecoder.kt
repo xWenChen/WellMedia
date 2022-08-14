@@ -351,6 +351,38 @@ class HardwareDecoder(
         return HardwareMediaInfo("", -1, null)
     }
 
+    fun getState()= when (state) {
+        MediaCodecState.UNINITIALIZED -> PlayState.UNINITIALIZED
+        MediaCodecState.CONFIGURED -> PlayState.PREPARED
+        MediaCodecState.ERROR -> PlayState.ERROR
+        MediaCodecState.PAUSED -> PlayState.PAUSED
+        MediaCodecState.FLUSHED,
+        MediaCodecState.RUNNING,
+        MediaCodecState.END_OF_STREAM -> PlayState.PLAYING
+        else -> PlayState.STOPPED
+    }
+
+    fun isStopped(): Boolean {
+        return state != MediaCodecState.FLUSHED
+            && state != MediaCodecState.RUNNING
+            && state != MediaCodecState.END_OF_STREAM
+    }
+
+    fun isPaused(): Boolean {
+        return state == MediaCodecState.PAUSED
+    }
+
+    fun isPlaying(): Boolean {
+        return state == MediaCodecState.FLUSHED
+            || state == MediaCodecState.RUNNING
+            || state == MediaCodecState.END_OF_STREAM
+    }
+
+    // 单位 毫秒
+    fun getDuration(): Long {
+        return (mediaInfo?.duration ?: 0) / 1000
+    }
+
     private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo) {
         // videoBufferInfo.presentationTimeUs / 1000  PTS 视频的展示时间戳(相对时间)
         val ffTime = startMs + mediaBufferInfo.presentationTimeUs / 1000 - System.currentTimeMillis()

@@ -1,8 +1,8 @@
 package com.mustly.wellmedia.video
 
 import android.content.Context
-import android.media.*
 import android.net.Uri
+import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
 import android.widget.SeekBar
@@ -45,14 +45,17 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
 
     private var scheduledJob: Job? = null
 
-    private var decoder: PlayManager? = null
+    private var player: PlayManager? = null
+
+    private var surface: Surface? = null
 
     override fun initView(rootView: View) {
-        decoder = PlayManager(Uri.parse(R.raw.tanaka_asuka.uriPath()))
+        player = PlayManager(Uri.parse(R.raw.tanaka_asuka.uriPath()))
 
         binding.svVideo.holder.addCallback(object : SurfaceHolder.Callback2 {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                decoder?.start(activity, holder.surface)
+                player?.start(activity, holder.surface)
+                surface = holder.surface
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -107,32 +110,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         }
     }
 
-    override fun initData(context: Context) {
-        /*mediaPlayer.apply {
-            mediaPlayer.reset()
-            // 循环播放
-            mediaPlayer.isLooping = true
-            setScreenOnWhilePlaying(true)
-            setDataSource(context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
-
-            setOnVideoSizeChangedListener { mMediaPlayer, width, height ->
-                changeViewSize(width, height)
-            }
-
-            prePareAndStart()
-            *//*setOnPreparedListener {
-
-            }
-            setOnErrorListener { _, what, extra ->
-                Log.e(TAG, "视频解析异常", IllegalStateException("parse error: what=$what, extra=$extra"))
-                true
-            }
-            setOnCompletionListener {
-                // OnErrorListener 返回 false 时，会调用这个接口
-            }
-            prepareAsync()*//*
-        }*/
-    }
+    override fun initData(context: Context) {}
 
     private fun changeViewSize(videoWidth: Int, videoHeight: Int) {
         if (videoWidth <= 0 || videoHeight <= 0) {
@@ -147,21 +125,6 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
             lp.height = viewHeight
             binding.svVideo.layoutParams = lp
         }
-    }
-
-    private fun MediaPlayer.prePareAndStart() {
-        lifecycleScope.runResult(
-            doOnIo = {
-                prepare()
-            },
-            doOnSuccess = {
-                playState = PlayState.PREPARED
-                realStartPlay()
-            },
-            doOnFailure = {
-                playState = PlayState.ERROR
-            }
-        )
     }
 
     override fun onResume() {
@@ -179,25 +142,15 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     override fun onDestroy() {
         super.onDestroy()
 
-        /*if (mediaPlayer.isPlaying) {
-            mediaPlayer.stop()
-        }
-
-        mediaPlayer.release()*/
-
         stopCheckTime()
 
-        decoder?.stop()
-        decoder = null
-    }
-
-    private fun MediaPlayer.notPlay(): Boolean {
-        return playState.isPlayState(PlayState.PREPARED) || playState.isPlayState(PlayState.PAUSED)
+        player?.stop()
+        player = null
     }
 
     // 毫秒转成格式化的时间字符串
-    private fun Int.formattedTime(): String {
-        if (this <= 0) {
+    private fun Int?.formattedTime(): String {
+        if (this == null || this <= 0) {
             return "00:00"
         }
 
@@ -228,42 +181,38 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     }
 
     private fun startPlay() {
-        if (playState == PlayState.PLAYING) {
+        if (player?.isPlaying() == true) {
             return
+        }
+        if (player?.isPaused() == true) {
+            player?.resume()
+        } else {
+            // 不是暂停，重新开始播放
+            player?.reset()
+            player?.start(activity, surface)
         }
 
-        /*if (playState.isPlayState(PlayState.UNINITIALIZED)) {
-            mediaPlayer.prePareAndStart()
-            return
-        }
-        if (playState.isPlayState(PlayState.COMPLETED)) {
-            mediaPlayer.seekTo(0)
-        }
-        if (mediaPlayer.notPlay()) {
-            realStartPlay()
-        }*/
+        setControlInfo()
     }
 
-    private fun realStartPlay() {
-        /*binding.sbProgress.max = mediaPlayer.duration
-        binding.tvTimeEnd.text = mediaPlayer.duration.formattedTime()
-        mediaPlayer.start()
+    private fun setControlInfo() {
+        binding.sbProgress.max = player?.getDuration() ?: 0
+        binding.tvTimeEnd.text = player?.getDuration().formattedTime()
         startCheckTime {
-            binding.tvCurrentTime.text = mediaPlayer.currentPosition.formattedTime()
-            binding.sbProgress.progress = mediaPlayer.currentPosition
+            binding.tvCurrentTime.text = player?.getCurrentTime().formattedTime()
+            binding.sbProgress.progress = player?.getCurrentPosition() ?: 0
         }
-        playState = PlayState.PLAYING*/
+        playState = PlayState.PLAYING
     }
 
     private fun stopPlay(isPaused: Boolean = false) {
-        /*if (isPaused) {
-            mediaPlayer.pause()
-            playState = PlayState.PAUSED
+        if (isPaused) {
+            player?.pause()
         } else {
-            mediaPlayer.stop()
+            player?.stop()
             playState = PlayState.UNINITIALIZED
         }
-        stopCheckTime()*/
+        stopCheckTime()
     }
 
     private fun stopCheckTime() {
