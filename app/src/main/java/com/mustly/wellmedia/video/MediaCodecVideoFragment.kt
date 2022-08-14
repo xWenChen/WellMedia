@@ -70,7 +70,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
         })
 
         binding.tvCurrentTime.text = R.string.zero_time_text.stringRes
-        binding.tvTimeEnd.text = ""
+        binding.tvTimeEnd.text = R.string.zero_time_text.stringRes
 
         binding.sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -198,7 +198,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.l
     private fun setControlInfo() {
         startCheckTime {
             binding.tvTimeEnd.apply {
-                if (text.isNullOrBlank()) {
+                if (text == R.string.zero_time_text.stringRes || text.isNullOrBlank()) {
                     text = player?.getDuration().formattedTime()
                 }
             }
