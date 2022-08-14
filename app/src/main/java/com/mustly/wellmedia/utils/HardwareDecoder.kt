@@ -232,7 +232,7 @@ class HardwareDecoder(
 
     fun resume() {
         LogUtil.d(TAG, "resume decoder")
-        state = MediaCodecState.PAUSED
+        state = MediaCodecState.RUNNING
     }
 
     fun reset() = stop()
