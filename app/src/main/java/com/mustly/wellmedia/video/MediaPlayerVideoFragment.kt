@@ -33,7 +33,7 @@ import kotlinx.coroutines.*
  * MediaPlayer 状态图：https://developer.android.com/images/mediaplayer_state_diagram.gif?hl=zh-cn
  * */
 @Route(PageRoute.MEDIA_PLAYER_PLAY_VIDEO)
-class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>(R.layout.fragment_media_player_video) {
+class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>() {
     companion object {
         const val TAG = "MediaPlayerVideo"
     }

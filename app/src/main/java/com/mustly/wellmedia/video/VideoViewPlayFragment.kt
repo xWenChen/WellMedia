@@ -23,7 +23,7 @@ import com.mustly.wellmedia.utils.uriPath
  * TODO 建议不使用
  * */
 @Route(PageRoute.VIDEO_VIEW_PLAY)
-class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>(R.layout.fragment_video_view_play) {
+class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>() {
     companion object {
         const val TAG = "VideoViewPlayFragment"
     }

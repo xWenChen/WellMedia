@@ -10,7 +10,7 @@ import com.mustly.wellmedia.utils.colorRes
 import com.mustly.wellmedia.utils.commitTransaction
 import com.mustly.wellmedia.utils.replaceFragment
 
-class MainActivity : BaseActivity<ActivityMainBinding>(R.layout.activity_main) {
+class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun onBackPressed() {
         if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.drawerLayout.closeDrawer(GravityCompat.START)

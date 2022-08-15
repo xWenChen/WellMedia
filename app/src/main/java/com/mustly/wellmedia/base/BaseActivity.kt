@@ -5,14 +5,13 @@ import android.os.Bundle
 import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowManager
-import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import com.mustly.wellmedia.R
+import com.mustly.wellmedia.utils.BindingUtil
 import com.mustly.wellmedia.utils.colorRes
 
-abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: Int) : AppCompatActivity() {
+abstract class BaseActivity<VB : ViewDataBinding> : AppCompatActivity() {
     lateinit var binding: VB
 
     var isConfigActivity = true
@@ -29,7 +28,10 @@ abstract class BaseActivity<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
             configActivity()
         }
 
-        binding = DataBindingUtil.setContentView(this, layoutResId)
+        binding = BindingUtil.getDataBinding<VB>(this, BaseActivity::class.java, 0, null, false)
+            ?: error("can not get binding")
+
+        setContentView(binding.root)
 
         preParseData()
 

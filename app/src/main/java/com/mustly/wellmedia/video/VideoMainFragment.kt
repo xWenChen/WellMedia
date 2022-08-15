@@ -1,7 +1,6 @@
 package com.mustly.wellmedia.video
 
 import android.content.Context
-import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -15,7 +14,7 @@ import com.mustly.wellmedia.databinding.FragmentVideoMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.VIDEO_MAIN_FRAGMENT)
-class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>(R.layout.fragment_video_main) {
+class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>() {
 
     override fun initView(rootView: View) {
 

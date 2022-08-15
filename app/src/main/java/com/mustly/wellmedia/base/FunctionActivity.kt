@@ -1,13 +1,12 @@
 package com.mustly.wellmedia.base
 
-import android.os.Bundle
 import android.util.Log
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.databinding.ActivityFunctionBinding
 import com.mustly.wellmedia.utils.addFragment
 import com.mustly.wellmedia.utils.commitTransaction
 
-class FunctionActivity : BaseActivity<ActivityFunctionBinding>(R.layout.activity_function) {
+class FunctionActivity : BaseActivity<ActivityFunctionBinding>() {
     companion object {
         const val TAG = "FunctionActivity"
     }

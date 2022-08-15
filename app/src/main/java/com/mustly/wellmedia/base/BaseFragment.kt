@@ -7,17 +7,16 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.LayoutRes
-import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
+import com.mustly.wellmedia.utils.BindingUtil
 import com.mustly.wellmedia.utils.checkAndRequestPermission
 import com.mustly.wellmedia.utils.keepScreenOn
 
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
  * */
-abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: Int) : Fragment() {
+abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
     companion object {
         const val TAG = "BaseFragment"
     }
@@ -29,7 +28,13 @@ abstract class BaseFragment<VB : ViewDataBinding>(@LayoutRes val layoutResId: In
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = DataBindingUtil.inflate(layoutInflater, layoutResId, container, false)
+        binding = BindingUtil.getDataBinding<VB>(
+            this,
+            BaseFragment::class.java,
+            0,
+            null,
+            false
+        ) ?: error("can not get binding")
 
         initView(binding.root)
         initData(binding.root.context)

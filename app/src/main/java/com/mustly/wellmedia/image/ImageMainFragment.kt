@@ -1,7 +1,6 @@
 package com.mustly.wellmedia.image
 
 import android.content.Context
-import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -10,7 +9,7 @@ import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.*
 import com.mustly.wellmedia.databinding.FragmentImageMainBinding
 
-class ImageMainFragment : BaseFragment<FragmentImageMainBinding>(R.layout.fragment_image_main) {
+class ImageMainFragment : BaseFragment<FragmentImageMainBinding>() {
 
     override fun initView(rootView: View) {
     }

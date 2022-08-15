@@ -34,7 +34,7 @@ import kotlinx.coroutines.*
  * AudioTrack(音频轨道)搭配使用
  * */
 @Route(PageRoute.MEDIA_CODEC_PLAY_VIDEO)
-class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>(R.layout.fragment_media_codec_video) {
+class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
     companion object {
         const val TAG = "MediaCodecVideoFragment"
     }

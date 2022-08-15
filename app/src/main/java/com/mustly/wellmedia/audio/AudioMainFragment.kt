@@ -1,7 +1,6 @@
 package com.mustly.wellmedia.audio
 
 import android.content.Context
-import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -15,7 +14,7 @@ import com.mustly.wellmedia.databinding.FragmentAudioMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.AUDIO_MAIN_FRAGMENT)
-class AudioMainFragment : BaseFragment<FragmentAudioMainBinding>(R.layout.fragment_audio_main) {
+class AudioMainFragment : BaseFragment<FragmentAudioMainBinding>() {
 
     override fun initView(rootView: View) {
 
