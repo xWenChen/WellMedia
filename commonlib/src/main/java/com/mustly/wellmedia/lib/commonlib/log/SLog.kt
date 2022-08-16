@@ -7,7 +7,6 @@ import android.util.Log
  *
  * System Log
  *
- * @author   wchenzhang
  * date：    2022/8/8 20:29
  * version   1.0
  * modify by

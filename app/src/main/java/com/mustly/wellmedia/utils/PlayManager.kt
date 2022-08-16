@@ -13,7 +13,6 @@ import kotlin.math.max
  *
  * 统一管理视频解码和音频解码过程
  *
- * @author   wchenzhang
  * date：    2022/8/9 16:19
  * version   1.0
  * modify by

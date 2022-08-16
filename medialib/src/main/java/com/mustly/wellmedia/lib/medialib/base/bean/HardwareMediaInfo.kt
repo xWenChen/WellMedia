@@ -8,7 +8,6 @@ import com.mustly.wellmedia.lib.medialib.base.MediaType
 /**
  * description:
  *
- * @author   wchenzhang
  * date：    2022/8/8 11:39
  * version   1.0
  * modify by

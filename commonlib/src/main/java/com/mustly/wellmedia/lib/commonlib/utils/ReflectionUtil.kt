@@ -8,7 +8,6 @@ import java.lang.reflect.ParameterizedType
  *
  * 反射工具类
  *
- * @author   wchenzhang
  * date：    2022/8/15 15:14
  * version   1.0
  * modify by

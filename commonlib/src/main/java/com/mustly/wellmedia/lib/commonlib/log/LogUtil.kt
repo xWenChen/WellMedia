@@ -3,7 +3,6 @@ package com.mustly.wellmedia.lib.commonlib.log
 /**
  * description:
  *
- * @author   wchenzhang
  * date：    2022/8/9 9:20
  * version   1.0
  * modify by

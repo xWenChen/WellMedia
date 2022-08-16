@@ -14,7 +14,6 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * MediaCodec 硬解码视频
  *
- * @author   wchenzhang
  * date：    2022/8/5 19:25
  * version   1.0
  * modify by
