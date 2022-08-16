@@ -309,34 +309,29 @@ class HardwareDecoder(
         val bufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
         val outputBufferIndex = dequeueOutputBuffer(bufferInfo, TIMEOUT)
-        if (outputBufferIndex < 0 || bufferInfo.size <= 0) {
-            if (bufferInfo.flags.and(MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                state = MediaCodecState.END_OF_STREAM
-                return true
+        if (outputBufferIndex >= 0) {
+            if (!isVideo) {
+                val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return null
+                val pcmData = ByteArray(bufferInfo.size)
+
+                // 读取缓存到数组
+                byteBuffer.position(0)
+                byteBuffer.get(pcmData, 0, bufferInfo.size)
+                byteBuffer.clear()
+                // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
+                // 数据写入播放器
+                audioTrack.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
             }
-            return null
+            currentSampleTime = bufferInfo.presentationTimeUs
+            // 直接渲染到 Surface 时使用不到 outputBuffer
+            // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
+            // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
+            sleep(bufferInfo)
+            // 将该ByteBuffer释放掉，以供缓冲区的循环使用
+            releaseOutputBuffer(outputBufferIndex, true)
         }
 
-        if (!isVideo) {
-            val byteBuffer = getOutputBuffer(outputBufferIndex) ?: return null
-            val pcmData = ByteArray(bufferInfo.size)
-
-            // 读取缓存到数组
-            byteBuffer.position(0)
-            byteBuffer.get(pcmData, 0, bufferInfo.size)
-            byteBuffer.clear()
-            // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
-            // 数据写入播放器
-            audioTrack.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
-        }
-        currentSampleTime = bufferInfo.presentationTimeUs
-        // 直接渲染到 Surface 时使用不到 outputBuffer
-        // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
-        // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
-        sleep(bufferInfo)
-        // 将该ByteBuffer释放掉，以供缓冲区的循环使用
-        releaseOutputBuffer(outputBufferIndex, true)
-
+        // outputBufferIndex < 0 时需要检查是否解码完成
         return if (bufferInfo.flags.and(MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
             state = MediaCodecState.END_OF_STREAM
             true
