@@ -178,7 +178,9 @@ class HardwareDecoder(
         var outputDone = false
 
         while (!outputDone) {
-            if (state == MediaCodecState.END_OF_STREAM) {
+            if (state == MediaCodecState.END_OF_STREAM
+                || state == MediaCodecState.UNINITIALIZED // 用于重置操作
+            ) {
                 break
             }
             // 暂停时
@@ -234,7 +236,9 @@ class HardwareDecoder(
         state = MediaCodecState.RUNNING
     }
 
-    fun reset() = stop()
+    fun reset() {
+        state = MediaCodecState.UNINITIALIZED
+    }
 
     fun stop() {
         if (state != MediaCodecState.FLUSHED &&
@@ -328,7 +332,9 @@ class HardwareDecoder(
             // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
             sleep(bufferInfo)
             // 将该ByteBuffer释放掉，以供缓冲区的循环使用
-            releaseOutputBuffer(outputBufferIndex, true)
+            if (inDecodingState()) {
+                releaseOutputBuffer(outputBufferIndex, true)
+            }
         }
 
         // outputBufferIndex < 0 时需要检查是否解码完成
@@ -338,6 +344,12 @@ class HardwareDecoder(
         } else {
             false
         }
+    }
+
+    private fun inDecodingState(): Boolean {
+        return state == MediaCodecState.FLUSHED
+                || state == MediaCodecState.RUNNING
+                || state == MediaCodecState.END_OF_STREAM
     }
 
     fun findMediaFormat(): HardwareMediaInfo {

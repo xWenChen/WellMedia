@@ -12,6 +12,7 @@ import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentMediaCodecVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
+import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.medialib.base.PlayState
 import com.mustly.wellmedia.lib.medialib.base.isPlayState
 import com.mustly.wellmedia.utils.*
@@ -101,12 +102,9 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
             }
         }
         binding.btnReset.setOnClickListener {
-            if (playState.isPlayState(PlayState.ERROR)) {
-                //mediaPlayer.prePareAndStart()
-            } else {
-                player?.reset()
-                startPlay()
-            }
+            player?.reset()
+            binding.tvTimeEnd.text = R.string.zero_time_text.stringRes
+            startPlay()
         }
     }
 
@@ -125,12 +123,6 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
             lp.height = viewHeight
             binding.svVideo.layoutParams = lp
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        startPlay()
     }
 
     override fun onPause() {
@@ -188,7 +180,6 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
             player?.resume()
         } else {
             // 不是暂停，重新开始播放
-            player?.reset()
             player?.start(activity, surface)
         }
 

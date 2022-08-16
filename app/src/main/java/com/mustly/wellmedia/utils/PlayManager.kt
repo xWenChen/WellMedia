@@ -19,7 +19,7 @@ import kotlin.math.max
  */
 class PlayManager(val fileUri: Uri) {
     companion object {
-        const val TAG = "DecodeManager"
+        const val TAG = "PlayManager"
     }
 
     private var videoDecoder: HardwareDecoder? = null
@@ -31,32 +31,25 @@ class PlayManager(val fileUri: Uri) {
     private var activity: FragmentActivity? = null
     private var surface: Surface? = null
 
-    init {
-        init()
-    }
-
-    private fun init() {
-        videoDecoder = HardwareDecoder(true, fileUri)
-        audioDecoder = HardwareDecoder(false, fileUri)
-    }
-
     fun start(
         activity: FragmentActivity?,
-        surface: Surface? = null
+        surface: Surface? = null,
     ) {
         if (activity == null) {
             LogUtil.e(TAG, "start decode fail, activity == null")
             return
         }
+        // 取消上个解码任务
+        destroy()
         this.activity = activity
         this.surface = surface
-        // 取消上个解码任务
-        cancelDecode()
         job = activity.lifecycleScope.launch(Dispatchers.Main) {
             try {
                 activity.keepScreenOn(true)
 
                 withContext(Dispatchers.IO) {
+                    videoDecoder = HardwareDecoder(true, fileUri)
+                    audioDecoder = HardwareDecoder(false, fileUri)
                     syncStartTime()
                     launch { videoDecoder?.decode(activity, surface) }
                     launch { audioDecoder?.decode(activity) }
@@ -93,7 +86,10 @@ class PlayManager(val fileUri: Uri) {
     }
 
     fun destroy() {
-        cancelDecode()
+        if (job?.isActive == true) {
+            job?.cancel()
+            job = null
+        }
         videoDecoder?.release()
         videoDecoder = null
         audioDecoder?.release()
@@ -101,13 +97,6 @@ class PlayManager(val fileUri: Uri) {
 
         activity = null
         surface = null
-    }
-
-    private fun cancelDecode() {
-        if (job?.isActive == true) {
-            job?.cancel()
-            job = null
-        }
     }
 
     fun isStopped(): Boolean {
