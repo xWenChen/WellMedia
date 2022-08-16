@@ -391,9 +391,13 @@ class HardwareDecoder(
 
     private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo) {
         // videoBufferInfo.presentationTimeUs / 1000  PTS 视频的展示时间戳(相对时间)
-        val ffTime = startMs + mediaBufferInfo.presentationTimeUs / 1000 - System.currentTimeMillis()
-        if (ffTime > 0) {
-            Thread.sleep(ffTime)
+        val fastForwardTime = startMs + mediaBufferInfo.presentationTimeUs / 1000 - System.currentTimeMillis()
+        if (fastForwardTime > 0) {
+            // 音频解析快了
+            Thread.sleep(fastForwardTime)
+        } else {
+            // 音频解析慢了，可能是暂停后恢复了，startTime 加上差值
+            startMs -= fastForwardTime
         }
     }
 
