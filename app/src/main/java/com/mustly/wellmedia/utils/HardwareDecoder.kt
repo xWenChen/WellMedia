@@ -58,6 +58,7 @@ class HardwareDecoder(
             ERROR, // 遇见错误时进入
             RELEASED, // 调用 release 时进入
             PAUSED, // 自定义状态，非 MediaCodec 标准状态，用于暂停场景
+            RESET, //  自定义状态，非 MediaCodec 标准状态，用于重置场景
         }
     }
 
@@ -79,7 +80,7 @@ class HardwareDecoder(
 
     var audioPlayState = PlayState.UNINITIALIZED
     // 音频播放器，仅解码音频时有效
-    lateinit var audioTrack: AudioTrack
+    var audioTrack: AudioTrack? = null
 
     // 只有视频用得上 surface
     var surface: Surface? = null
@@ -109,7 +110,9 @@ class HardwareDecoder(
             if (isVideo) {
                 this.surface = surface
             } else {
-                this.audioTrack = createAndConfigAudioPlayer()
+                if (audioTrack == null) {
+                    this.audioTrack = createAndConfigAudioPlayer()
+                }
             }
 
             createAndDecode()
@@ -145,10 +148,10 @@ class HardwareDecoder(
             mExtractor.release()
             releaseDecoder()
             if (!isVideo) {
-                if (audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-                    audioTrack.stop()
+                if (audioTrack?.state == AudioTrack.STATE_INITIALIZED) {
+                    audioTrack?.stop()
                 }
-                audioTrack.release()
+                audioTrack?.release()
             }
             state = MediaCodecState.UNINITIALIZED
         } catch (e: Exception) {
@@ -178,14 +181,16 @@ class HardwareDecoder(
         var outputDone = false
 
         while (!outputDone) {
-            if (state == MediaCodecState.END_OF_STREAM
-                || state == MediaCodecState.UNINITIALIZED // 用于重置操作
-            ) {
+            if (state == MediaCodecState.END_OF_STREAM) {
                 break
             }
             // 暂停时
             if (state == MediaCodecState.PAUSED) {
                 continue
+            }
+            if (state == MediaCodecState.RESET) {
+                // 退到 0 帧处
+                mExtractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
             }
             // 将资源传递到解码器
             if (!inputDone) {
@@ -237,7 +242,7 @@ class HardwareDecoder(
     }
 
     fun reset() {
-        state = MediaCodecState.UNINITIALIZED
+        state = MediaCodecState.RESET
     }
 
     fun stop() {
@@ -324,7 +329,7 @@ class HardwareDecoder(
                 byteBuffer.clear()
                 // audioTrack.write(pcmData, 0, audioBufferInfo.size);//用这个写法会导致少帧？
                 // 数据写入播放器
-                audioTrack.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
+                audioTrack?.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
             }
             currentSampleTime = bufferInfo.presentationTimeUs
             // 直接渲染到 Surface 时使用不到 outputBuffer

@@ -31,6 +31,11 @@ class PlayManager(val fileUri: Uri) {
     private var activity: FragmentActivity? = null
     private var surface: Surface? = null
 
+    init {
+        videoDecoder = HardwareDecoder(true, fileUri)
+        audioDecoder = HardwareDecoder(false, fileUri)
+    }
+
     fun start(
         activity: FragmentActivity?,
         surface: Surface? = null,
@@ -40,7 +45,7 @@ class PlayManager(val fileUri: Uri) {
             return
         }
         // 取消上个解码任务
-        destroy()
+        cancelLastJob()
         this.activity = activity
         this.surface = surface
         job = activity.lifecycleScope.launch(Dispatchers.Main) {
@@ -48,8 +53,6 @@ class PlayManager(val fileUri: Uri) {
                 activity.keepScreenOn(true)
 
                 withContext(Dispatchers.IO) {
-                    videoDecoder = HardwareDecoder(true, fileUri)
-                    audioDecoder = HardwareDecoder(false, fileUri)
                     syncStartTime()
                     launch { videoDecoder?.decode(activity, surface) }
                     launch { audioDecoder?.decode(activity) }
@@ -86,10 +89,7 @@ class PlayManager(val fileUri: Uri) {
     }
 
     fun destroy() {
-        if (job?.isActive == true) {
-            job?.cancel()
-            job = null
-        }
+        cancelLastJob()
         videoDecoder?.release()
         videoDecoder = null
         audioDecoder?.release()
@@ -97,6 +97,13 @@ class PlayManager(val fileUri: Uri) {
 
         activity = null
         surface = null
+    }
+
+    private fun cancelLastJob() {
+        if (job?.isActive == true) {
+            job?.cancel()
+            job = null
+        }
     }
 
     fun isStopped(): Boolean {

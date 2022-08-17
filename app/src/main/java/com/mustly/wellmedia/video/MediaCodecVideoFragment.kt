@@ -104,7 +104,6 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
         binding.btnReset.setOnClickListener {
             player?.reset()
             binding.tvTimeEnd.text = R.string.zero_time_text.stringRes
-            startPlay()
         }
     }
 
