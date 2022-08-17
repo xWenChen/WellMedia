@@ -57,6 +57,7 @@ class HardwareDecoder(
             RELEASED, // 调用 release 时进入
             PAUSED, // 自定义状态，非 MediaCodec 标准状态，用于暂停场景
             RESET, //  自定义状态，非 MediaCodec 标准状态，用于重置场景
+            FLUSHED, // 自定义状态，非 MediaCodec 标准状态，用于清除缓存
         }
     }
 
@@ -188,7 +189,9 @@ class HardwareDecoder(
             }
             if (state == MediaCodecState.RESET) {
                 // 退到 0 帧处
-                mExtractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+                seekTo(0)
+            }
+            if (state == MediaCodecState.FLUSHED) {
                 decoder?.flush()
                 audioTrack?.flush()
             }
@@ -203,7 +206,8 @@ class HardwareDecoder(
     // 调到指定位置，单位 毫秒
     fun seekTo(time: Long) {
         mExtractor.seekTo(time * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-        startDecode()
+        startMs += (currentSampleTime / 1000 - time)
+        state = MediaCodecState.FLUSHED
     }
 
     fun start() {
@@ -215,7 +219,8 @@ class HardwareDecoder(
             LogUtil.e(TAG, "can not prepare decoder which not in uninitialized state")
             return
         }
-        decoder?.configure(mediaInfo?.mediaFormat, surface, null, 0) }
+        decoder?.configure(mediaInfo?.mediaFormat, surface, null, 0)
+    }
 
     fun create() {
         if (decoder == null) {
@@ -377,12 +382,12 @@ class HardwareDecoder(
 
     private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo) {
         // videoBufferInfo.presentationTimeUs / 1000  PTS 视频的展示时间戳(相对时间)
-        val fastForwardTime = startMs + mediaBufferInfo.presentationTimeUs / 1000 - System.currentTimeMillis()
+        val fastForwardTime = mediaBufferInfo.presentationTimeUs / 1000 + startMs - System.currentTimeMillis()
         if (fastForwardTime > 0) {
             // 音频解析快了
             Thread.sleep(fastForwardTime)
         } else {
-            // 音频解析慢了，可能是暂停后恢复了，startTime 加上差值
+            // 音频解析慢了，可能是暂停后恢复了或者使用了 seek 功能，startTime 加上差值
             startMs -= fastForwardTime
         }
     }

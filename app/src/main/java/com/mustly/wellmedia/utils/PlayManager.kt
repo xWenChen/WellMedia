@@ -74,11 +74,9 @@ class PlayManager(val fileUri: Uri) {
     }
 
     // 跳到指定位置，单位 毫秒
-    fun seekTo(time: Long) {
+    fun seekTo(process: Int) {
         // 停止现在的播放
-        videoDecoder?.stop()
-        audioDecoder?.stop()
-        syncStartTime()
+        val time = (getDuration().toDouble() * process / 100).toLong()
         videoDecoder?.seekTo(time)
         audioDecoder?.seekTo(time)
     }

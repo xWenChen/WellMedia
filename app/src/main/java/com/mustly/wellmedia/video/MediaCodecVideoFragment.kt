@@ -42,8 +42,6 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
 
     private var playState = PlayState.UNINITIALIZED
 
-    private var isSeekBarChanging = false
-
     private var scheduledJob: Job? = null
 
     private var player: PlayManager? = null
@@ -75,22 +73,16 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
 
         binding.sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                // binding.tvCurrentTime.text = mediaPlayer.currentPosition.formattedTime()
+                // binding.tvCurrentTime.text = player?.getCurrentPosition().formattedTime()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
                 // 通知用户已经开始一个触摸拖动手势
-                isSeekBarChanging = true
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 // 通知用户触摸手势已经结束
-                isSeekBarChanging = false
-                /*mediaPlayer.seekTo(seekBar.progress)
-                if (mediaPlayer.notPlay()) {
-                    startPlay()
-                }*/
-                binding.tvCurrentTime.text = seekBar.progress.formattedTime()
+                player?.seekTo(seekBar.progress)
             }
         })
         binding.btnPlay.setOnClickListener {
