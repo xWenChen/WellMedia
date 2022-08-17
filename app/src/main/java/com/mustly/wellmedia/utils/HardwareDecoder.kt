@@ -191,6 +191,8 @@ class HardwareDecoder(
             if (state == MediaCodecState.RESET) {
                 // 退到 0 帧处
                 mExtractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+                decoder?.flush()
+                audioTrack?.flush()
             }
             // 将资源传递到解码器
             if (!inputDone) {
