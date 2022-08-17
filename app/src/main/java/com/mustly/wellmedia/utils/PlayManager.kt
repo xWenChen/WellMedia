@@ -106,11 +106,6 @@ class PlayManager(val fileUri: Uri) {
         }
     }
 
-    fun isStopped(): Boolean {
-        return videoDecoder?.isStopped() == true
-            && videoDecoder?.isStopped() == true
-    }
-
     fun isPaused(): Boolean {
         return videoDecoder?.isPaused() == true
             && videoDecoder?.isPaused() == true

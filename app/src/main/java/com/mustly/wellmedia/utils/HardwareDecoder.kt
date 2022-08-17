@@ -51,8 +51,6 @@ class HardwareDecoder(
          * */
         private enum class MediaCodecState {
             UNINITIALIZED, // 调用 reset 或者 stop 时进入
-            CONFIGURED, // 调用 configure 进入
-            FLUSHED, // 调用 flush 或者 start 进入
             RUNNING, // 首次 dequeue Input(Output) Buffer 成功时进入
             END_OF_STREAM,  // Output Buffer 结束时进入
             ERROR, // 遇见错误时进入
@@ -209,12 +207,7 @@ class HardwareDecoder(
     }
 
     fun start() {
-        if (state != MediaCodecState.CONFIGURED) {
-            LogUtil.e(TAG, "can not start decoder which not in configured state")
-            return
-        }
         decoder?.start()
-        state = MediaCodecState.FLUSHED
     }
 
     fun prepare() {
@@ -222,9 +215,7 @@ class HardwareDecoder(
             LogUtil.e(TAG, "can not prepare decoder which not in uninitialized state")
             return
         }
-        decoder?.configure(mediaInfo?.mediaFormat, surface, null, 0)
-        state = MediaCodecState.CONFIGURED
-    }
+        decoder?.configure(mediaInfo?.mediaFormat, surface, null, 0) }
 
     fun create() {
         if (decoder == null) {
@@ -233,11 +224,13 @@ class HardwareDecoder(
         state = MediaCodecState.UNINITIALIZED
     }
 
+    // 暂停解码
     fun pause() {
         LogUtil.d(TAG, "pause decoder")
         state = MediaCodecState.PAUSED
     }
 
+    // 恢复解码
     fun resume() {
         LogUtil.d(TAG, "resume decoder")
         state = MediaCodecState.RUNNING
@@ -248,8 +241,7 @@ class HardwareDecoder(
     }
 
     fun stop() {
-        if (state != MediaCodecState.FLUSHED &&
-            state != MediaCodecState.RUNNING &&
+        if (state != MediaCodecState.RUNNING &&
             state != MediaCodecState.END_OF_STREAM
         ) {
             LogUtil.e(TAG, "can not stop decoder which not in flushed or running or end-of-stream state, current state: $state")
@@ -257,15 +249,6 @@ class HardwareDecoder(
         }
         decoder?.stop()
         state = MediaCodecState.UNINITIALIZED
-    }
-
-    fun flush() {
-        if (state != MediaCodecState.RUNNING && state != MediaCodecState.END_OF_STREAM) {
-            LogUtil.e(TAG, "can not flush decoder which not in running or end-of-stream state, current state: $state")
-            return
-        }
-        decoder?.flush()
-        state = MediaCodecState.FLUSHED
     }
 
     fun releaseDecoder() {
@@ -339,9 +322,7 @@ class HardwareDecoder(
             // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
             sleep(bufferInfo)
             // 将该ByteBuffer释放掉，以供缓冲区的循环使用
-            if (inDecodingState()) {
-                releaseOutputBuffer(outputBufferIndex, true)
-            }
+            releaseOutputBuffer(outputBufferIndex, true)
         }
 
         // outputBufferIndex < 0 时需要检查是否解码完成
@@ -351,12 +332,6 @@ class HardwareDecoder(
         } else {
             false
         }
-    }
-
-    private fun inDecodingState(): Boolean {
-        return state == MediaCodecState.FLUSHED
-                || state == MediaCodecState.RUNNING
-                || state == MediaCodecState.END_OF_STREAM
     }
 
     fun findMediaFormat(): HardwareMediaInfo {
@@ -378,19 +353,12 @@ class HardwareDecoder(
 
     fun getState()= when (state) {
         MediaCodecState.UNINITIALIZED -> PlayState.UNINITIALIZED
-        MediaCodecState.CONFIGURED -> PlayState.PREPARED
+        MediaCodecState.RESET,
         MediaCodecState.ERROR -> PlayState.ERROR
         MediaCodecState.PAUSED -> PlayState.PAUSED
-        MediaCodecState.FLUSHED,
         MediaCodecState.RUNNING,
         MediaCodecState.END_OF_STREAM -> PlayState.PLAYING
         else -> PlayState.STOPPED
-    }
-
-    fun isStopped(): Boolean {
-        return state != MediaCodecState.FLUSHED
-            && state != MediaCodecState.RUNNING
-            && state != MediaCodecState.END_OF_STREAM
     }
 
     fun isPaused(): Boolean {
@@ -398,8 +366,7 @@ class HardwareDecoder(
     }
 
     fun isPlaying(): Boolean {
-        return state == MediaCodecState.FLUSHED
-            || state == MediaCodecState.RUNNING
+        return state == MediaCodecState.RUNNING
             || state == MediaCodecState.END_OF_STREAM
     }
 
