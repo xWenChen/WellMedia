@@ -138,7 +138,7 @@ class PlayManager(val fileUri: Uri) {
                 it.first != null && it.second != null
             }?.run {
                 // 2000 = 2 * 1000
-                max(first!!.toInt(), second!!.toInt()) / 1000
+                max(first!!.toInt(), second!!.toInt())
             } ?: 0
     }
 

@@ -86,6 +86,7 @@ class HardwareDecoder(
 
     var mediaInfo: HardwareMediaInfo? = null
 
+    // 当前帧时间，毫秒
     var currentSampleTime = 0L
 
     var startMs = 0L
@@ -195,18 +196,20 @@ class HardwareDecoder(
                 decoder?.flush()
                 audioTrack?.flush()
             }
+            // startMs time 随时可改，不能保证线程安全，此处赋值一次，保证一个输入输出循环内，startTime 值不变
+            val nowStartTime = startMs
             // 将资源传递到解码器
             if (!inputDone) {
                 inputDone = decoder?.inputData(mExtractor) ?: inputDone
             }
-            outputDone = decoder?.outputData() ?: outputDone
+            outputDone = decoder?.outputData(nowStartTime) ?: outputDone
         }
     }
 
     // 调到指定位置，单位 毫秒
     fun seekTo(time: Long) {
         mExtractor.seekTo(time * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-        startMs += (currentSampleTime / 1000 - time)
+        startMs += (currentSampleTime - time)
         state = MediaCodecState.FLUSHED
     }
 
@@ -238,6 +241,8 @@ class HardwareDecoder(
     // 恢复解码
     fun resume() {
         LogUtil.d(TAG, "resume decoder")
+        // 暂停后恢复了，音频解析慢了，startTime 加上差值对齐时间戳。否则视频视频播放会过快
+        startMs = System.currentTimeMillis() - currentSampleTime
         state = MediaCodecState.RUNNING
     }
 
@@ -304,7 +309,7 @@ class HardwareDecoder(
     /**
      * 从解码器获取解码后的音频数据
      * */
-    private fun MediaCodec.outputData(): Boolean? {
+    private fun MediaCodec.outputData(startTime: Long): Boolean? {
         val bufferInfo = MediaCodec.BufferInfo()
         // 等待 10 秒
         val outputBufferIndex = dequeueOutputBuffer(bufferInfo, TIMEOUT)
@@ -321,11 +326,11 @@ class HardwareDecoder(
                 // 数据写入播放器
                 audioTrack?.write(pcmData, bufferInfo.offset, bufferInfo.offset + bufferInfo.size)
             }
-            currentSampleTime = bufferInfo.presentationTimeUs
+            currentSampleTime = bufferInfo.presentationTimeUs / 1000
             // 直接渲染到 Surface 时使用不到 outputBuffer
             // ByteBuffer outputBuffer = videoCodec.getOutputBuffer(outputBufferIndex);
             // 如果缓冲区里的展示时间(PTS) > 当前音频播放的进度，就休眠一下(音频解析过快，需要缓缓)
-            sleep(bufferInfo)
+            sleep(bufferInfo, startTime)
             // 将该ByteBuffer释放掉，以供缓冲区的循环使用
             releaseOutputBuffer(outputBufferIndex, true)
         }
@@ -380,15 +385,12 @@ class HardwareDecoder(
         return (mediaInfo?.duration ?: 0) / 1000
     }
 
-    private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo) {
+    private fun sleep(mediaBufferInfo: MediaCodec.BufferInfo, startTime: Long) {
         // videoBufferInfo.presentationTimeUs / 1000  PTS 视频的展示时间戳(相对时间)
-        val fastForwardTime = mediaBufferInfo.presentationTimeUs / 1000 + startMs - System.currentTimeMillis()
+        val fastForwardTime = mediaBufferInfo.presentationTimeUs / 1000 + startTime - System.currentTimeMillis()
         if (fastForwardTime > 0) {
             // 音频解析快了
             Thread.sleep(fastForwardTime)
-        } else {
-            // 音频解析慢了，可能是暂停后恢复了或者使用了 seek 功能，startTime 加上差值
-            startMs -= fastForwardTime
         }
     }
 
