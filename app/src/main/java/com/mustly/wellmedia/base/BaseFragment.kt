@@ -11,6 +11,7 @@ import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
 import com.mustly.wellmedia.utils.BindingUtil
 import com.mustly.wellmedia.utils.checkAndRequestPermission
+import com.mustly.wellmedia.utils.checkAndRequestPermissions
 import com.mustly.wellmedia.utils.keepScreenOn
 
 /**
@@ -58,6 +59,15 @@ abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
         callback: ((Boolean) -> Unit)
     ) {
         activity?.checkAndRequestPermission(permission, title, desc, callback) ?: Log.w(TAG, "check permission, not find activity")
+    }
+
+    fun checkAndRequestPermissions(
+        permissions: Array<String>,
+        title: String = "",
+        desc: String = "",
+        callback: (Map<String, Boolean>) -> Unit
+    ) {
+        activity?.checkAndRequestPermissions(permissions, title, desc, callback) ?: Log.w(TAG, "check permissions, not find activity")
     }
 
     fun keepScreenOn(enable: Boolean) {
