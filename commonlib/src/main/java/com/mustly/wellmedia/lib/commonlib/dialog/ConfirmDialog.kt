@@ -11,6 +11,7 @@ class ConfirmDialog() : BaseDialogFragment() {
     }
 
     private lateinit var tvTitle: TextView
+    private lateinit var divider1: View
     private lateinit var tvDesc: TextView
     private lateinit var cancel: TextView
     private lateinit var confirm: TextView
@@ -55,11 +56,14 @@ class ConfirmDialog() : BaseDialogFragment() {
         showTitle = title.isNullOrBlank()
 
         tvTitle.text = title
-        tvTitle.visibility = if (showTitle) {
+        val visibility = if (showTitle) {
             View.VISIBLE
         } else {
             View.GONE
         }
+
+        tvTitle.visibility = visibility
+        divider1.visibility = visibility
 
         tvDesc.text = desc
 
@@ -81,6 +85,7 @@ class ConfirmDialog() : BaseDialogFragment() {
 
     private fun findView(rootView: View) {
         tvTitle = rootView.findViewById(R.id.tvTitle)
+        divider1 = rootView.findViewById(R.id.divider1)
         tvDesc = rootView.findViewById(R.id.tvDesc)
         cancel = rootView.findViewById(R.id.cancel)
         confirm = rootView.findViewById(R.id.confirm)

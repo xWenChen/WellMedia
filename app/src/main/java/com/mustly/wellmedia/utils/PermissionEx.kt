@@ -2,12 +2,10 @@ package com.mustly.wellmedia.utils
 
 import android.app.Activity
 import android.content.pm.PackageManager
-import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentActivity
 import com.mustly.wellmedia.lib.commonlib.dialog.ConfirmDialog
-import com.mustly.wellmedia.video.CameraXRecordFragment
 
 fun FragmentActivity.checkAndRequestPermission(
     permission: String,
@@ -80,14 +78,14 @@ fun Activity.isPermissionGranted(permission: String) =
 
 fun Activity.allPermissionsGranted(permissions: Array<String>) = permissions.all { isPermissionGranted(it) }
 
-fun ComponentActivity.requestPermission(permission: String, callback: ((Boolean) -> Unit)) {
-    registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+fun FragmentActivity.requestPermission(permission: String, callback: ((Boolean) -> Unit)) {
+    registerForActivityResultOnDemand(ActivityResultContracts.RequestPermission()) {
         callback.invoke(it)
     }.launch(permission)
 }
 
-fun ComponentActivity.requestPermissions(permission: Array<String>, callback: ((Map<String, Boolean>) -> Unit)) {
-    registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+fun FragmentActivity.requestPermissions(permission: Array<String>, callback: ((Map<String, Boolean>) -> Unit)) {
+    registerForActivityResultOnDemand(ActivityResultContracts.RequestMultiplePermissions()) {
         callback.invoke(it)
     }.launch(permission)
 }

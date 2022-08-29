@@ -56,6 +56,11 @@ class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>() {
                 R.string.media_codec_play_video,
                 PageRoute.MEDIA_CODEC_PLAY_VIDEO
             ),
+            ItemBean(
+                R.drawable.ic_number_4,
+                R.string.camerax_record_video,
+                PageRoute.CAMERAX_RECORD_VIDEO
+            ),
         )
     }
 }
