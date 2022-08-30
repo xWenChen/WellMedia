@@ -40,6 +40,8 @@ import java.util.*
 
 /**
  * MediaCodec + CameraX 录制视频
+ *
+ * https://stackoverflow.com/questions/61934659/how-can-i-share-a-surface-between-mediacodec-encoder-and-camerax
  * */
 @Route(PageRoute.CAMERAX_RECORD_VIDEO)
 class CameraXRecordFragment : BaseFragment<FragmentCameraxRecordBinding>() {
