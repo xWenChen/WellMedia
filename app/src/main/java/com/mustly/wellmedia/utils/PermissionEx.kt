@@ -46,15 +46,19 @@ fun FragmentActivity.checkAndRequestPermissions(
 
     // 筛选出未授权的权限
     result.filterValues { !it }.takeIf { it.any() }?.also { map ->
-        // 提示为什么申请权限
+        // 提示为什么申请权限，该动作涉及到异步过程
         showHintDialog(title, desc) { clickConfirm ->
             if (clickConfirm) {
-                requestPermissions(map.keys.toTypedArray()) { result.putAll(it) }
+                requestPermissions(map.keys.toTypedArray()) {
+                    result.putAll(it)
+                    callback.invoke(result)
+                }
+            } else {
+                // 点取消直接返回结果
+                callback.invoke(result)
             }
         }
-    }
-
-    callback.invoke(result)
+    } ?: callback.invoke(result) // 所有权限都已授权
 }
 
 private fun FragmentActivity.showHintDialog(
