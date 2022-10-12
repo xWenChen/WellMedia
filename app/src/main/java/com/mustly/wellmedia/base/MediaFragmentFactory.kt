@@ -45,6 +45,8 @@ object PageRoute {
     const val MEDIA_CODEC_PLAY_VIDEO = "media_codec_play_video"
     // CameraX 录制视频
     const val CAMERAX_RECORD_VIDEO = "camerax_record_video"
+    // Camera2 录制视频
+    const val CAMERA2_RECORD_VIDEO = "camera2_record_video"
 
     const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
 
