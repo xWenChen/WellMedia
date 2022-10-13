@@ -38,6 +38,12 @@ import java.util.*
  *
  * https://developer.android.com/training/camera2
  *
+ * 相机的图像方向，通常和手机的方向相差 90 度，设备必须旋转 SENSOR_ORIENTATION 度数(可选度数：0、90、180、270)，
+ * 前置摄像头逆时针选项，后置摄像头顺时针旋转：
+ *  https://developer.android.com/static/images/training/camera/camera2/camera-preview/camera_preview_portrait_front_facing.png
+ *
+ * 摄像头图像的旋转度数，需要是 SENSOR_ORIENTATION + 设备旋转度数
+ *
  * Camera2 使用步骤：
  *  1. 获取 CameraManager
  *  2. 获取 CameraManager#CameraCharacteristics
@@ -77,6 +83,8 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         override fun onOpened(device: CameraDevice) {
             // 当相机成功打开时回调该方法，接下来可以执行创建预览的操作
             cameraInfo?.curUsableDevice = device // 获取到可用的 CameraDevice 实例
+            binding.tvLoading.visibility = View.GONE
+            startPreview()
         }
 
         override fun onDisconnected(device: CameraDevice) {
@@ -129,23 +137,34 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         checkAndRequestPermissions(REQUIRED_PERMISSIONS) { resultMap ->
             if (resultMap.all { it.value }) {
                 isInitialized = true
-                initCamera()
+                binding.tvLoading.visibility = View.VISIBLE
+                if (!initCamera()) {
+                    binding.tvLoading.visibility = View.GONE
+                }
             }
         }
     }
 
-    private fun initCamera() {
+    private fun initCamera(): Boolean {
         val realActivity = activity
-            ?: return LogUtil.e(TAG, "activity is null, can not init camera.")
+
+        if (realActivity == null) {
+            LogUtil.e(TAG, "activity is null, can not init camera.")
+            return false
+        }
 
         // 第 1 步，获取 CameraManager
         cameraManager = activity?.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-            ?: return LogUtil.e(TAG, "cameraManager is null, can not init camera.")
+        if (cameraManager == null) {
+            LogUtil.e(TAG, "cameraManager is null, can not init camera.")
+            return false
+        }
 
         // 第 2 步，获取 CameraCharacteristics。每个Camera设备都有一组静态属性信息，这组静态属性信息描述该Camera设备的能力，可用的参数等
         getCameraInfo(CameraCharacteristics.LENS_FACING_BACK)
         if (cameraInfo?.properties == null) {
-            return LogUtil.e(TAG, "cameraCharacteristics is null, can not init camera.")
+            LogUtil.e(TAG, "cameraCharacteristics is null, can not init camera.")
+            return false
         }
 
         // 第 3 步，打开相机，获取 CameraDevice 并设置回调
@@ -155,6 +174,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         readerSurface = ImageReader.newInstance(1080, 1920, ImageFormat.YUV_420_888, 30).surface
         previewSurface = binding.preview.holder.surface
 
+        return true
     }
 
     private fun getCameraInfo(facing: Int) {
@@ -228,23 +248,8 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
             }
     }
 
-    // 查询相机功能，然后使用 QualitySelector::from() 从受支持的分辨率中进行选择
-    @androidx.camera.camera2.interop.ExperimentalCamera2Interop
-    @Deprecated(message = "此功能不使用，仅是官方说明的摘录")
-    private fun selectQuality(cameraProvider: ProcessCameraProvider) {
-        val cameraInfo = cameraProvider.availableCameraInfos.filter {
-            Camera2CameraInfo.from(it).getCameraCharacteristic(CameraCharacteristics.LENS_FACING) ==
-                CameraMetadata.LENS_FACING_BACK
-        }
-        // QualitySelector.getSupportedQualities() 返回的功能肯定适用于 VideoCapture 用例或 VideoCapture
-        // 和 Preview 用例的组合。与 ImageCapture 或 ImageAnalysis 用例绑定时，如果请求的相机不支持所需的组合，
-        // CameraX 仍可能会绑定失败
-        val supportedQualities = QualitySelector.getSupportedQualities(cameraInfo[0])
-        val filteredQualities = listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD)
-            .filter { supportedQualities.contains(it) }
+    private fun startPreview() {
 
-        val qualitySelector = QualitySelector.from(filteredQualities[0])
-        val recorder = Recorder.Builder().setQualitySelector(qualitySelector).build()
     }
 }
 
