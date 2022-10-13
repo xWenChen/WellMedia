@@ -69,12 +69,33 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
     private var isInitialized = false
 
     // 第 1 步，获取相机
-    private val cameraManager: CameraManager by lazy {
-        requireContext().getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    }
+    private var cameraManager: CameraManager? = null
     private var cameraInfo: CameraInfo? = null
     private var previewSurface: Surface? = null
     private var readerSurface: Surface? = null
+    private val callback = object : CameraDevice.StateCallback() {
+        override fun onOpened(device: CameraDevice) {
+            // 当相机成功打开时回调该方法，接下来可以执行创建预览的操作
+            cameraInfo?.curUsableDevice = device // 获取到可用的 CameraDevice 实例
+        }
+
+        override fun onDisconnected(device: CameraDevice) {
+            // 当相机断开连接时回调该方法，应该在此执行释放相机的操作
+            cameraInfo?.curUsableDevice = null
+        }
+
+        override fun onError(device: CameraDevice, error: Int) {
+            // 当相机打开失败时，应该在此执行释放相机的操作
+            cameraInfo?.curUsableDevice = null
+        }
+    }
+    private val deviceEnableCallback = object : CameraManager.AvailabilityCallback() {
+        override fun onCameraAvailable(cameraId: String) {
+            if (cameraId == cameraInfo?.cameraId) {
+                cameraManager?.openCamera(cameraInfo?.cameraId ?: "", callback, null)
+            }
+        }
+    }
 
     override fun initView(rootView: View) {
         binding.btnVideoRecord.setOnClickListener {
@@ -93,7 +114,6 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
             }
-
         })
     }
 
@@ -102,6 +122,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
     override fun onDestroy() {
         super.onDestroy()
+        cameraManager?.unregisterAvailabilityCallback(deviceEnableCallback)
     }
 
     private fun realInitData() {
@@ -117,30 +138,18 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         val realActivity = activity
             ?: return LogUtil.e(TAG, "activity is null, can not init camera.")
 
+        // 第 1 步，获取 CameraManager
+        cameraManager = activity?.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+            ?: return LogUtil.e(TAG, "cameraManager is null, can not init camera.")
+
         // 第 2 步，获取 CameraCharacteristics。每个Camera设备都有一组静态属性信息，这组静态属性信息描述该Camera设备的能力，可用的参数等
-        val cameraInfo = getCameraInfo(CameraCharacteristics.LENS_FACING_BACK)
-        if (cameraInfo.properties == null) {
+        getCameraInfo(CameraCharacteristics.LENS_FACING_BACK)
+        if (cameraInfo?.properties == null) {
             return LogUtil.e(TAG, "cameraCharacteristics is null, can not init camera.")
         }
 
         // 第 3 步，打开相机，获取 CameraDevice 并设置回调
-        val callback = object : CameraDevice.StateCallback() {
-            override fun onOpened(device: CameraDevice) {
-                // 当相机成功打开时回调该方法，接下来可以执行创建预览的操作
-                cameraInfo.curUsableDevice = device // 获取到可用的 CameraDevice 实例
-            }
-
-            override fun onDisconnected(device: CameraDevice) {
-                // 当相机断开连接时回调该方法，应该在此执行释放相机的操作
-                cameraInfo.curUsableDevice = null
-            }
-
-            override fun onError(device: CameraDevice, error: Int) {
-                // 当相机打开失败时，应该在此执行释放相机的操作
-                cameraInfo.curUsableDevice = null
-            }
-        }
-        cameraManager.openCamera(cameraInfo.cameraId, callback, null)
+        cameraManager?.registerAvailabilityCallback(deviceEnableCallback, null)
 
         // 第 1 步，获取 surface
         readerSurface = ImageReader.newInstance(1080, 1920, ImageFormat.YUV_420_888, 30).surface
@@ -148,15 +157,16 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
     }
 
-    private fun getCameraInfo(facing: Int): CameraInfo {
+    private fun getCameraInfo(facing: Int) {
         cameraInfo = CameraInfo()
         // 获取可用相机
-        cameraManager.cameraIdList.forEach {
-            val characteristics = cameraManager.getCameraCharacteristics(it)
-            if (facing == characteristics.get(CameraCharacteristics.LENS_FACING)) {
+        cameraManager?.cameraIdList?.forEach {
+            val characteristics = cameraManager?.getCameraCharacteristics(it)
+            if (characteristics?.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)?.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE) == true
+                && facing == characteristics.get(CameraCharacteristics.LENS_FACING)) {
                 cameraInfo?.cameraId = it
                 cameraInfo?.properties = characteristics
-                return@forEach
+                return
             }
         }
     }
