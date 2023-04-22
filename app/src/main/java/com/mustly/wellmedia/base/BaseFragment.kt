@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.utils.BindingUtil
 import com.mustly.wellmedia.utils.checkAndRequestPermission
+import com.mustly.wellmedia.utils.checkAndRequestPermissions
 import com.mustly.wellmedia.utils.keepScreenOn
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume

@@ -3,7 +3,16 @@ package com.mustly.wellmedia.utils
 import android.app.Activity
 import android.util.Log
 import android.view.WindowManager
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.annotation.MainThread
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.commit
+import androidx.fragment.app.commitNow
+import androidx.lifecycle.Lifecycle
 import com.mustly.wellmedia.MediaApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,5 +62,27 @@ fun Activity.keepScreenOn(enable: Boolean) {
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     } else {
         window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+}
+
+@MainThread
+fun <I, O> FragmentActivity.registerForActivityResultOnDemand(
+    contract: ActivityResultContract<I, O>,
+    callback: ActivityResultCallback<O>
+): ActivityResultLauncher<I> {
+    return if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+        val fragment = Fragment()
+        val registry = fragment.registerForActivityResult(contract) {
+            callback.onActivityResult(it)
+            supportFragmentManager.commit(true) {
+                remove(fragment)
+            }
+        }
+        supportFragmentManager.commitNow(true) {
+            add(fragment, fragment.hashCode().toString())
+        }
+        registry
+    } else {
+        registerForActivityResult(contract, callback)
     }
 }

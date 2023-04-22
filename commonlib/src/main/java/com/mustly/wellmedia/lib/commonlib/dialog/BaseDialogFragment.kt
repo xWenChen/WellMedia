@@ -1,5 +1,7 @@
 package com.mustly.wellmedia.lib.commonlib.dialog
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -29,7 +31,7 @@ abstract class BaseDialogFragment : DialogFragment() {
     /**
      * dialog 的高度
      * */
-    var height = WindowManager.LayoutParams.WRAP_CONTENT
+    var height = WindowManager.LayoutParams.MATCH_PARENT
     /**
      * 点击 dialog 外部，dialog 是否消失的标志
      * */
@@ -47,7 +49,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        config()
+        preConfig()
 
         val view = inflater.inflate(getLayoutResId(), container)
 
@@ -56,17 +58,30 @@ abstract class BaseDialogFragment : DialogFragment() {
         return view
     }
 
+    override fun onStart() {
+        super.onStart()
+
+        config()
+    }
+
     fun show(manager: FragmentManager) {
         show(manager, getDialogTag())
     }
 
-    private fun config() {
+    private fun preConfig() {
         if (dialog == null) {
             Log.e(TAG, "can not config the dialog, dialog is null")
             return
         }
         if (hideSystemTitle) {
             dialog!!.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        }
+    }
+
+    private fun config() {
+        if (dialog == null) {
+            Log.e(TAG, "can not config the dialog, dialog is null")
+            return
         }
 
         val mWindow = dialog!!.window
@@ -77,7 +92,7 @@ abstract class BaseDialogFragment : DialogFragment() {
         }
 
         // 设置背景透明，必要步骤
-        mWindow.setBackgroundDrawableResource(android.R.drawable.screen_background_light_transparent)
+        mWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
         //必要，设置 padding，这一步也是必须的，内容不能填充全部宽度和高度
         mWindow.decorView.setPadding(0)
