@@ -9,9 +9,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
+import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.utils.BindingUtil
 import com.mustly.wellmedia.utils.checkAndRequestPermission
 import com.mustly.wellmedia.utils.keepScreenOn
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
@@ -51,7 +54,7 @@ abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
         })
     }
 
-    fun checkAndRequestPermission(
+    fun requestPermission(
         permission: String,
         title: String = "",
         desc: String = "",
@@ -60,8 +63,35 @@ abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
         activity?.checkAndRequestPermission(permission, title, desc, callback) ?: Log.w(TAG, "check permission, not find activity")
     }
 
+    suspend fun suspendRequestPermission(
+        permission: String,
+        title: String = "",
+        desc: String = "",
+    ): Boolean = suspendCancellableCoroutine { cont ->
+        val aty = activity
+        if (aty == null) {
+            LogUtil.w(TAG, "check permission, not find activity")
+            return@suspendCancellableCoroutine cont.resume(false)
+        }
+
+        aty.checkAndRequestPermission(permission, title, desc) {
+            cont.resume(it)
+        }
+    }
+
     fun keepScreenOn(enable: Boolean) {
         activity?.keepScreenOn(enable)
+    }
+
+    /**
+     * 作用类似于 activity.finish()
+     * */
+    fun finish() {
+        try {
+            activity?.supportFragmentManager?.popBackStackImmediate()
+        } catch (e: Exception) {
+            LogUtil.e(TAG, e)
+        }
     }
 
     abstract fun initView(rootView: View)

@@ -10,53 +10,42 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
-annotation class DirType {
-    companion object {
-        /**
-         * root
-         * */
-        const val DEFAULT = 0
-        /**
-         * 视频
-         * */
-        const val VIDEO = 1
-        /**
-         * 音频
-         * */
-        const val AUDIO = 2
-        /**
-         * 图像
-         * */
-        const val IMAGE = 3
-
-        val fileName = SparseArray<String>().apply {
-            this.put(DEFAULT, "")
-            this.put(VIDEO, "video")
-            this.put(AUDIO, "audio")
-            this.put(IMAGE, "image")
-        }
-
-        fun getDirName(@DirType type: Int) = fileName.get(type)
-    }
+enum class DirType(var dirName: String) {
+    /**
+     * root
+     * */
+    DEFAULT(""),
+    /**
+     * 视频
+     * */
+    VIDEO("video"),
+    /**
+     * 音频
+     * */
+    AUDIO("audio"),
+    /**
+     * 图像
+     * */
+    IMAGE("image")
 }
 
-fun String.getInnerPath(@DirType type: Int = DirType.DEFAULT) = MediaApplication.getAppContext().filesDir?.let {
+fun String.getInnerPath(type: DirType = DirType.DEFAULT) = MediaApplication.getAppContext().filesDir?.let {
     val rootDir = it.absolutePath.checkDirSeparator()
-    val dir = DirType.getDirName(type)
-    if (dir.isNullOrBlank()) {
+    val dir = type.dirName
+    if (dir.isBlank()) {
         rootDir
     } else {
         rootDir + dir + File.separator + this
     }
 }
 
-fun String.getExternalVideoPath(@DirType type: Int = DirType.DEFAULT) = MediaApplication.getAppContext().let { context ->
+fun String.getExternalVideoPath(type: DirType = DirType.DEFAULT) = MediaApplication.getAppContext().let { context ->
     if (!isExternalStorageWritable()) {
         return@let ""
     }
 
     // 根据 WinNTFileSystem.resolve 的实现，子路径为空，则会返回父目录
-    val dir = DirType.getDirName(type)
+    val dir = type.dirName
     context.getExternalFilesDir(dir)?.absolutePath?.checkDirSeparator() + this
 }
 
