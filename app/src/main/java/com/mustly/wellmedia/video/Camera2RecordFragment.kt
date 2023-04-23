@@ -106,7 +106,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
     }
 
     override fun initView(rootView: View) {
-        binding.btnVideoRecord.setOnClickListener {
+        /*binding.btnVideoRecord.setOnClickListener {
             if (isInitialized) {
                 recordVideo()
             }
@@ -122,7 +122,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
             }
-        })
+        })*/
     }
 
     override fun initData(context: Context) {
@@ -134,7 +134,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
     }
 
     private fun realInitData() {
-        checkAndRequestPermissions(REQUIRED_PERMISSIONS) { resultMap ->
+        /*checkAndRequestPermissions(REQUIRED_PERMISSIONS) { resultMap ->
             if (resultMap.all { it.value }) {
                 isInitialized = true
                 binding.tvLoading.visibility = View.VISIBLE
@@ -142,7 +142,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
                     binding.tvLoading.visibility = View.GONE
                 }
             }
-        }
+        }*/
     }
 
     private fun initCamera(): Boolean {
@@ -193,7 +193,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
     @SuppressLint("MissingPermission")
     private fun recordVideo() {
-        val videoCapture = videoCapture ?: return
+        /*val videoCapture = videoCapture ?: return
 
         val curRecording = recording
         if (curRecording != null) {
@@ -245,7 +245,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
                         binding.btnVideoRecord.text = R.string.start_record.stringRes
                     }
                 }
-            }
+            }*/
     }
 
     private fun startPreview() {
