@@ -3,6 +3,7 @@ package com.mustly.wellmedia.image
 import android.Manifest
 import android.content.Context
 import android.graphics.ImageFormat
+import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
@@ -15,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
+import com.mustly.wellmedia.lib.commonlib.utils.setNoDoubleClickListener
 import com.mustly.wellmedia.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,6 +44,8 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     private var camera: CameraDevice? = null
 
     private var characteristics: CameraCharacteristics? = null
+
+    private var session: CameraCaptureSession? = null
 
     /**
      * 相机执行操作的线程
@@ -76,6 +80,9 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         cameraThread.quitSafely()
         cameraHandler.removeCallbacksAndMessages(null)
         imageReader = null
+
+        session?.close()
+        session = null
     }
 
     private suspend fun realInitView(rootView: View) {
@@ -169,6 +176,11 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     fun initializeCamera() = lifecycleScope.launch(Dispatchers.Main) {
         // 5. surface 可用时，打开相机
         camera = openCamera(cameraManager!!, cameraId, cameraHandler)
+        if (camera == null) {
+            LogUtil.e(TAG, "can not obtain camera device")
+            return@launch
+        }
+
         // 6. 获取相片尺寸
         val format = ImageFormat.JPEG
         val size = characteristics.getMaxSize(format)
@@ -176,6 +188,27 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         imageReader = ImageReader.newInstance(size.width, size.height, format, IMAGE_BUFFER_SIZE)
         // 用于预览和拍照的 target surfaces
         val targets = listOf(binding.viewFinder.holder.surface, imageReader!!.surface)
+        // 8. 创建会话
+        session = createCaptureSession(camera!!, targets, cameraHandler)
+        if (session == null) {
+            LogUtil.e(TAG, "can not create capture session")
+            return@launch
+        }
+        // 9. 创建预览请求
+        val previewRequest = camera!!.createCaptureRequest(
+            CameraDevice.TEMPLATE_PREVIEW
+        ).apply {
+            // 预览画面输出到 SurfaceView
+            addTarget(binding.viewFinder.holder.surface)
+        }.build()
+        // 9. 提交预览请求
+        // 重复发送请求，直到调用了 session.stopRepeating() 方法
+        session!!.setRepeatingRequest(previewRequest, null, cameraHandler)
+        // 10. 监听拍照按钮的点击
+        binding.captureButton.setNoDoubleClickListener {
+            // 防止同时发出多个请求
+            it?.isEnabled = false
 
+        }
     }
 }

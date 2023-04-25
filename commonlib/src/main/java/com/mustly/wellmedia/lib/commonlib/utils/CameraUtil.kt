@@ -3,14 +3,12 @@ package com.mustly.wellmedia.utils
 import android.annotation.SuppressLint
 import android.graphics.ImageFormat
 import android.graphics.Point
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.*
 import android.os.Handler
 import android.util.Log
 import android.util.Size
 import android.view.Display
+import android.view.Surface
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -87,6 +85,28 @@ suspend fun openCamera(
             if (cont.isActive) {
                 cont.resume(null)
             }
+        }
+    }, handler)
+}
+
+/**
+ * 创建 [CameraCaptureSession]
+ */
+suspend fun createCaptureSession(
+    device: CameraDevice,
+    targets: List<Surface>,
+    handler: Handler? = null
+): CameraCaptureSession? = suspendCancellableCoroutine { cont ->
+    // Create a capture session using the predefined targets; this also involves defining the
+    // session state callback to be notified of when the session is ready
+    device.createCaptureSession(targets, object : CameraCaptureSession.StateCallback() {
+
+        override fun onConfigured(session: CameraCaptureSession) = cont.resume(session)
+
+        override fun onConfigureFailed(session: CameraCaptureSession) {
+            val exc = RuntimeException("Camera ${device.id} session configuration failed")
+            LogUtil.e("createCaptureSession", exc)
+            cont.resume(null)
         }
     }, handler)
 }
