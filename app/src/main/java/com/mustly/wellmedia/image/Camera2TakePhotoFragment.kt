@@ -2,9 +2,11 @@ package com.mustly.wellmedia.image
 
 import android.Manifest
 import android.content.Context
+import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.SurfaceHolder
@@ -27,6 +29,11 @@ import kotlinx.coroutines.launch
 class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>() {
     companion object {
         const val TAG = "Camera2TakePhotoFragment"
+
+        /**
+         * 图片的最大缓存数量
+         * */
+        const val IMAGE_BUFFER_SIZE: Int = 3
     }
 
     private var cameraManager: CameraManager? = null
@@ -41,6 +48,8 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
      * */
     private val cameraThread = HandlerThread("CameraThread").apply { start() }
     private val cameraHandler = Handler(cameraThread.looper)
+    // 用于获取拍摄的图片数据
+    private var imageReader: ImageReader? = null
 
     override fun initView(rootView: View) {
         lifecycleScope.launch(Dispatchers.Main) {
@@ -66,6 +75,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
 
         cameraThread.quitSafely()
         cameraHandler.removeCallbacksAndMessages(null)
+        imageReader = null
     }
 
     private suspend fun realInitView(rootView: View) {
@@ -159,5 +169,13 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     fun initializeCamera() = lifecycleScope.launch(Dispatchers.Main) {
         // 5. surface 可用时，打开相机
         camera = openCamera(cameraManager!!, cameraId, cameraHandler)
+        // 6. 获取相片尺寸
+        val format = ImageFormat.JPEG
+        val size = characteristics.getMaxSize(format)
+        // 7. 创建用于获取图片数据的 ImageReader
+        imageReader = ImageReader.newInstance(size.width, size.height, format, IMAGE_BUFFER_SIZE)
+        // 用于预览和拍照的 target surfaces
+        val targets = listOf(binding.viewFinder.holder.surface, imageReader!!.surface)
+
     }
 }

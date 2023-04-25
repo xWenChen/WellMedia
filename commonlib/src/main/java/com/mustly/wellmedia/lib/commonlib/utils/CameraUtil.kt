@@ -36,8 +36,17 @@ enum class LensFacing {
      * */
     EXTERNAL,
     UNKNOWN
+}
 
-
+/**
+ * 获取指定格式的最大可用尺寸
+ * */
+fun CameraCharacteristics?.getMaxSize(format: Int): Size {
+    return this?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        ?.getOutputSizes(format)
+        ?.maxByOrNull {
+            it.height * it.width
+        } ?: SIZE_1080P.size
 }
 
 fun CameraDevice?.safeClose() {
