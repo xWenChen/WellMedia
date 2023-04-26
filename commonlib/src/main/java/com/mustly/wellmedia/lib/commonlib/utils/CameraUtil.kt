@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.ImageFormat
 import android.graphics.Point
 import android.hardware.camera2.*
+import android.media.Image
 import android.os.Handler
 import android.util.Log
 import android.util.Size
@@ -11,6 +12,7 @@ import android.view.Display
 import android.view.Surface
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.Closeable
 import kotlin.coroutines.resume
 import kotlin.math.max
 import kotlin.math.min
@@ -34,6 +36,15 @@ enum class LensFacing {
      * */
     EXTERNAL,
     UNKNOWN
+}
+
+data class CaptureResultWrapper(
+    val image: Image,
+    val metadata: CaptureResult,
+    val orientation: Int,
+    val format: Int
+) : Closeable {
+    override fun close() = image.close()
 }
 
 /**

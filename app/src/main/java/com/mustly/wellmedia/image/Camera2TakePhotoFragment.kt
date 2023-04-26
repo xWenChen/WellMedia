@@ -2,16 +2,16 @@ package com.mustly.wellmedia.image
 
 import android.Manifest
 import android.content.Context
+import android.graphics.Color
 import android.graphics.ImageFormat
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
+import android.hardware.camera2.*
+import android.media.Image
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.SurfaceHolder
 import android.view.View
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
@@ -20,6 +20,9 @@ import com.mustly.wellmedia.lib.commonlib.utils.setNoDoubleClickListener
 import com.mustly.wellmedia.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.ArrayBlockingQueue
+import kotlin.coroutines.resume
 
 /**
  * Camera2 拍照功能，代码参考自官方示例：https://github.com/android/camera-samples
@@ -36,6 +39,9 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
          * 图片的最大缓存数量
          * */
         const val IMAGE_BUFFER_SIZE: Int = 3
+        const val ANIMATION_FAST_MILLIS = 50L
+        const val ANIMATION_SLOW_MILLIS = 100L
+        private const val IMMERSIVE_FLAG_TIMEOUT = 500L
     }
 
     private var cameraManager: CameraManager? = null
@@ -52,8 +58,25 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
      * */
     private val cameraThread = HandlerThread("CameraThread").apply { start() }
     private val cameraHandler = Handler(cameraThread.looper)
+    /**
+     * 执行 buffer reading 操作的线程
+     * */
+    private val imageReaderThread = HandlerThread("imageReaderThread").apply { start() }
+    private val imageReaderHandler = Handler(imageReaderThread.looper)
     // 用于获取拍摄的图片数据
     private var imageReader: ImageReader? = null
+
+    private val animationTask: Runnable by lazy {
+        Runnable {
+            // 白色动画模拟曝光
+            binding.overlay.background = Color.argb(150, 255, 255, 255).toDrawable()
+            // 等待 50 毫秒
+            binding.overlay.postDelayed({
+                // 移除白色背景
+                binding.overlay.background = null
+            }, ANIMATION_FAST_MILLIS)
+        }
+    }
 
     override fun initView(rootView: View) {
         lifecycleScope.launch(Dispatchers.Main) {
@@ -208,7 +231,65 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         binding.captureButton.setNoDoubleClickListener {
             // 防止同时发出多个请求
             it?.isEnabled = false
-
+            // 异步执行 io 操作
+            lifecycleScope.launch(Dispatchers.IO) {
+                takePhoto()
+                it?.post { it.isEnabled = true }
+            }
         }
+    }
+
+    private suspend fun takePhoto(): CaptureResultWrapper? = suspendCancellableCoroutine { cont ->
+        val localImageReader = imageReader
+        val localSession = session
+        if (localImageReader == null || localSession == null) {
+            cont.resume(null)
+            return@suspendCancellableCoroutine
+        }
+        // 清空 image reader 中已有的内容
+        @Suppress("ControlFlowWithEmptyBody")
+        while (localImageReader.acquireNextImage() != null) {
+        }
+
+        // 11. 注册 image available 回调，使用新的 image queue 缓存数据
+        val imageQueue = ArrayBlockingQueue<Image>(IMAGE_BUFFER_SIZE)
+        localImageReader.setOnImageAvailableListener({ reader ->
+            val image = reader?.acquireNextImage() ?: return@setOnImageAvailableListener
+            LogUtil.d(TAG, "image available in queue: ${image.timestamp}")
+            imageQueue.add(image)
+        }, imageReaderHandler)
+
+        // 12. 创建拍照请求并提交
+        val captureRequest = localSession.device.createCaptureRequest(
+            CameraDevice.TEMPLATE_STILL_CAPTURE
+        ).apply {
+            addTarget(localImageReader.surface)
+        }.build()
+        localSession.capture(
+            captureRequest,
+            object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureStarted(
+                    session: CameraCaptureSession,
+                    request: CaptureRequest,
+                    timestamp: Long,
+                    frameNumber: Long
+                ) {
+                    super.onCaptureStarted(session, request, timestamp, frameNumber)
+                    // 13. 拍照开始，显示 50 毫秒曝光动画
+                    binding.viewFinder.post(animationTask)
+                }
+
+                override fun onCaptureCompleted(
+                    session: CameraCaptureSession,
+                    request: CaptureRequest,
+                    result: TotalCaptureResult
+                ) {
+                    super.onCaptureCompleted(session, request, result)
+                    // 14. 拍照完成，进行保存
+                }
+            },
+            cameraHandler
+        )
+
     }
 }
