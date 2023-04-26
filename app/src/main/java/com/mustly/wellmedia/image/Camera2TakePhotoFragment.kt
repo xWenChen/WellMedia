@@ -18,8 +18,10 @@ import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.commonlib.utils.OrientationLiveData
+import com.mustly.wellmedia.lib.commonlib.utils.computeExifOrientation
 import com.mustly.wellmedia.lib.commonlib.utils.setNoDoubleClickListener
 import com.mustly.wellmedia.utils.*
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -28,6 +30,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
+ * todo 待讲解列表：1. Surface+SurfaceView, ImageReader, Camera2 框架
+ *
  * Camera2 拍照功能，代码参考自官方示例：https://github.com/android/camera-samples
  *
  * 使用 Camera2 拍照的步骤为：
@@ -273,67 +277,87 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         }.build()
         localSession.capture(
             captureRequest,
-            object : CameraCaptureSession.CaptureCallback() {
-                override fun onCaptureStarted(
-                    session: CameraCaptureSession,
-                    request: CaptureRequest,
-                    timestamp: Long,
-                    frameNumber: Long
-                ) {
-                    super.onCaptureStarted(session, request, timestamp, frameNumber)
-                    // 13. 拍照开始，显示 50 毫秒曝光动画
-                    binding.viewFinder.post(animationTask)
-                }
-
-                override fun onCaptureCompleted(
-                    session: CameraCaptureSession,
-                    request: CaptureRequest,
-                    result: TotalCaptureResult
-                ) {
-                    super.onCaptureCompleted(session, request, result)
-                    // 14. 拍照完成，进行保存
-                    // 获取图像的时间戳
-                    val resultTimestamp = result.get(CaptureResult.SENSOR_TIMESTAMP)
-                    LogUtil.d(TAG, "Capture result received: $resultTimestamp")
-                    // 设置等待拍照结果返回的最大时长
-                    val timeoutRunnable = Runnable { cont.resume(null) }
-                    imageReaderHandler.postDelayed(timeoutRunnable, IMAGE_CAPTURE_TIMEOUT_MILLIS)
-                    // 在协程的上下文中循环，直到出现具有匹配时间戳的图像。我们需要再次启动协程上下文，
-                    // 因为回调是在提供给 `capture` 方法的处理程序中完成的，而不是在我们的协程上下文中
-                    lifecycleScope.launch(cont.context) {
-                        while (true) {
-                            // 从队列中取出图像，如果队列中没有图像，则会阻塞等待
-                            val image = imageQueue.take()
-                            // 非 DEPTH_JPEG 需要检查时间戳
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                                && image.format != ImageFormat.DEPTH_JPEG
-                                && image.timestamp != resultTimestamp
-                            ) {
-                                continue
-                            }
-                            LogUtil.d(TAG, "Matching image dequeued: ${image.timestamp}")
-
-                            imageReaderHandler.removeCallbacks(timeoutRunnable)
-                            imageReader?.setOnImageAvailableListener(null, null)
-
-                            // 清空剩余缓存图片
-                            while (imageQueue.size > 0) {
-                                imageQueue.take().close()
-                            }
-
-                            // 计算 EXIF 方向的 metadata
-                            val rotation = relativeOrientation.value ?: 0
-                            // 前置摄像头需要反转
-                            val mirrored = characteristics!!.get(
-                                CameraCharacteristics.LENS_FACING
-                            ) == CameraCharacteristics.LENS_FACING_FRONT
-
-                        }
-                    }
-                }
-            },
+            getCaptureCallback(cont, imageQueue),
             cameraHandler
         )
 
+    }
+
+    private fun getCaptureCallback(
+        cont: CancellableContinuation<CaptureResultWrapper?>,
+        imageQueue: ArrayBlockingQueue<Image>
+    ) = object : CameraCaptureSession.CaptureCallback() {
+        override fun onCaptureStarted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            timestamp: Long,
+            frameNumber: Long
+        ) {
+            super.onCaptureStarted(session, request, timestamp, frameNumber)
+            // 13. 拍照开始，显示 50 毫秒曝光动画
+            binding.viewFinder.post(animationTask)
+        }
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+            super.onCaptureCompleted(session, request, result)
+            checkCaptureResult(result, cont, imageQueue)
+        }
+    }
+
+    private fun checkCaptureResult(
+        result: TotalCaptureResult,
+        cont: CancellableContinuation<CaptureResultWrapper?>,
+        imageQueue: ArrayBlockingQueue<Image>
+    ) {
+        // 14. 拍照完成，获取正确的图像
+        // 获取图像的时间戳
+        val resultTimestamp = result.get(CaptureResult.SENSOR_TIMESTAMP)
+        LogUtil.d(TAG, "Capture result received: $resultTimestamp")
+        // 设置等待拍照结果返回的最大时长
+        val timeoutRunnable = Runnable { cont.resume(null) }
+        imageReaderHandler.postDelayed(timeoutRunnable, IMAGE_CAPTURE_TIMEOUT_MILLIS)
+        // 在协程的上下文中循环，直到出现具有匹配时间戳的图像。我们需要再次启动协程上下文，
+        // 因为回调是在提供给 `capture` 方法的处理程序中完成的，而不是在我们的协程上下文中
+        lifecycleScope.launch(cont.context) {
+            while (true) {
+                // 从队列中取出图像，如果队列中没有图像，则会阻塞等待
+                val image = imageQueue.take()
+                // 非 DEPTH_JPEG 需要检查时间戳
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && image.format != ImageFormat.DEPTH_JPEG
+                    && image.timestamp != resultTimestamp
+                ) {
+                    continue
+                }
+                LogUtil.d(TAG, "Matching image dequeued: ${image.timestamp}")
+
+                imageReaderHandler.removeCallbacks(timeoutRunnable)
+                imageReader?.setOnImageAvailableListener(null, null)
+
+                // 清空剩余缓存图片
+                while (imageQueue.size > 0) {
+                    imageQueue.take().close()
+                }
+
+                // 计算 EXIF 方向的 metadata
+                val rotation = relativeOrientation.value ?: 0
+                // 前置摄像头需要反转
+                val mirrored = characteristics!!.get(
+                    CameraCharacteristics.LENS_FACING
+                ) == CameraCharacteristics.LENS_FACING_FRONT
+                val exifOrientation = computeExifOrientation(rotation, mirrored)
+
+                cont.resume(CaptureResultWrapper(
+                    image,
+                    result,
+                    exifOrientation,
+                    imageReader!!.imageFormat
+                ))
+            }
+        }
     }
 }
