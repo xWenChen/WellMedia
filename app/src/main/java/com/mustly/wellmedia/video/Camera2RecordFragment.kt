@@ -17,11 +17,6 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
 import android.widget.Toast
-import androidx.camera.camera2.interop.Camera2CameraInfo
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.base.PageRoute
@@ -97,13 +92,13 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
             cameraInfo?.curUsableDevice = null
         }
     }
-    private val deviceEnableCallback = object : CameraManager.AvailabilityCallback() {
+    /*private val deviceEnableCallback = object : CameraManager.AvailabilityCallback() {
         override fun onCameraAvailable(cameraId: String) {
             if (cameraId == cameraInfo?.cameraId) {
                 cameraManager?.openCamera(cameraInfo?.cameraId ?: "", callback, null)
             }
         }
-    }
+    }*/
 
     override fun initView(rootView: View) {
         /*binding.btnVideoRecord.setOnClickListener {
@@ -130,7 +125,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
 
     override fun onDestroy() {
         super.onDestroy()
-        cameraManager?.unregisterAvailabilityCallback(deviceEnableCallback)
+        // cameraManager?.unregisterAvailabilityCallback(deviceEnableCallback)
     }
 
     private fun realInitData() {
@@ -145,7 +140,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         }*/
     }
 
-    private fun initCamera(): Boolean {
+    /*private fun initCamera(): Boolean {
         val realActivity = activity
 
         if (realActivity == null) {
@@ -175,7 +170,7 @@ class Camera2RecordFragment : BaseFragment<FragmentCamera2RecordBinding>() {
         previewSurface = binding.preview.holder.surface
 
         return true
-    }
+    }*/
 
     private fun getCameraInfo(facing: Int) {
         cameraInfo = CameraInfo()

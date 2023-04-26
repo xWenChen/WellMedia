@@ -8,7 +8,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.*
 import com.mustly.wellmedia.databinding.FragmentImageMainBinding
+import com.mustly.wellmedia.lib.annotation.Route
 
+@Route(PageRoute.IMAGE_MAIN_FRAGMENT)
 class ImageMainFragment : BaseFragment<FragmentImageMainBinding>() {
 
     override fun initView(rootView: View) {
@@ -27,7 +29,7 @@ class ImageMainFragment : BaseFragment<FragmentImageMainBinding>() {
                 iv.setImageResource(data.iconResId)
                 tv.setText(data.textRes)
                 holderRootView.setOnClickListener {
-
+                    startFunctionActivity(data.route)
                 }
             }
             .refresh()
@@ -36,8 +38,11 @@ class ImageMainFragment : BaseFragment<FragmentImageMainBinding>() {
     private fun getFuncList(): MutableList<ItemBean> {
         return mutableListOf(
             // TODO 定义选项
-            ItemBean(R.drawable.ic_audio_play, R.string.audio_play, PageRoute.AUDIO_PLAY_FRAGMENT),
-            ItemBean(R.drawable.ic_audio_record, R.string.audio_record, PageRoute.AUDIO_RECORD_FRAGMENT)
+            ItemBean(
+                R.drawable.ic_number_1,
+                R.string.camera2_take_photo,
+                PageRoute.CAMERA2_TAKE_PHOTO
+            ),
         )
     }
 }

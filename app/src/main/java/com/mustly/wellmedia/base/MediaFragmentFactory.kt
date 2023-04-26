@@ -47,6 +47,8 @@ object PageRoute {
     const val CAMERAX_RECORD_VIDEO = "camerax_record_video"
     // Camera2 录制视频
     const val CAMERA2_RECORD_VIDEO = "camera2_record_video"
+    // Camera2 拍照
+    const val CAMERA2_TAKE_PHOTO = "camera2_take_photo"
 
     const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
 

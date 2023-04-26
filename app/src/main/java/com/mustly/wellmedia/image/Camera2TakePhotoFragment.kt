@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.ImageFormat
 import android.hardware.camera2.*
+import android.media.ExifInterface
 import android.media.Image
 import android.media.ImageReader
 import android.os.Build
@@ -15,7 +16,9 @@ import android.view.View
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
+import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.commonlib.utils.OrientationLiveData
 import com.mustly.wellmedia.lib.commonlib.utils.computeExifOrientation
@@ -25,6 +28,10 @@ import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -38,6 +45,7 @@ import kotlin.coroutines.resumeWithException
  *
  * 1. 检查 <uses-permission android:name="android.permission.CAMERA" /> 权限
  * */
+@Route(PageRoute.CAMERA2_TAKE_PHOTO)
 class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>() {
     companion object {
         const val TAG = "Camera2TakePhotoFragment"
@@ -243,10 +251,85 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
             it?.isEnabled = false
             // 异步执行 io 操作
             lifecycleScope.launch(Dispatchers.IO) {
-                takePhoto()
+                // 拍照并保存
+                takePhoto()?.use { result ->
+                    saveResult(result)
+                }
                 it?.post { it.isEnabled = true }
             }
         }
+    }
+
+    private suspend fun saveResult(result: CaptureResultWrapper?) {
+        LogUtil.d(TAG, "Result received: $result")
+        if (result == null) {
+            return
+        }
+
+        val output = realSaveResult(result)
+
+        LogUtil.d(TAG, "Image saved: ${output?.absolutePath}")
+
+        if (output == null) {
+            return
+        }
+
+        // 如果格式是 JPG，则更新 EXIF metadata 的旋转信息
+        if (output.extension == "jpg") {
+            val exif = ExifInterface(output.absolutePath)
+            exif.setAttribute(
+                ExifInterface.TAG_ORIENTATION,
+                result.orientation.toString()
+            )
+            exif.saveAttributes()
+            LogUtil.d(TAG, "EXIF metadata saved: ${output.absolutePath}")
+        }
+    }
+
+    private suspend fun realSaveResult(
+        result: CaptureResultWrapper
+    ) = suspendCancellableCoroutine<File?> { cont ->
+        LogUtil.d(TAG, "Result received: $result")
+
+        when (result.format) {
+            // 如果格式是 JPEG 或者 DEPTH_JPEG，则我们可以使用 InputStream 保存
+            ImageFormat.JPEG, ImageFormat.DEPTH_JPEG -> {
+                val buffer = result.image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining()).apply { buffer.get(this) }
+                try {
+                    // 图片数据写入文件
+                    val outputs = createFile(requireContext(), "jpg")
+                    FileOutputStream(outputs).use { it.write(bytes) }
+                    cont.resume(outputs)
+                } catch (e: Exception) {
+                    LogUtil.e(TAG, "Unable to write JPEG image to file", e)
+                    cont.resume(null)
+                }
+            }
+            // 如果格式是 RAW 格式，则我们需要用 DngCreator 工具类保存
+            ImageFormat.RAW_SENSOR -> {
+                try {
+                    val dngCreator = DngCreator(characteristics!!, result.metadata)
+                    // 图片数据写入文件
+                    val outputs = createFile(requireContext(), "dng")
+                    FileOutputStream(outputs).use { dngCreator.writeImage(it, result.image) }
+                    cont.resume(outputs)
+                } catch (e: Exception) {
+                    LogUtil.e(TAG, "Unable to write DNG image to file", e)
+                    cont.resume(null)
+                }
+            }
+            // 其他格式不支持
+            else -> {
+                LogUtil.e(TAG, "Unknown image format: ${result.image.format}")
+                cont.resume(null)
+            }
+        }
+    }
+
+    private fun createFile(context: Context, extension: String): File {
+        val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.CHINA)
+        return File(context.externalCacheDir, "IMG_${sdf.format(Date())}.$extension")
     }
 
     private suspend fun takePhoto(): CaptureResultWrapper? = suspendCancellableCoroutine { cont ->
@@ -346,7 +429,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
                 // 计算 EXIF 方向的 metadata
                 val rotation = relativeOrientation.value ?: 0
                 // 前置摄像头需要反转
-                val mirrored = characteristics!!.get(
+                val mirrored = characteristics?.get(
                     CameraCharacteristics.LENS_FACING
                 ) == CameraCharacteristics.LENS_FACING_FRONT
                 val exifOrientation = computeExifOrientation(rotation, mirrored)
@@ -355,7 +438,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
                     image,
                     result,
                     exifOrientation,
-                    imageReader!!.imageFormat
+                    imageReader?.imageFormat ?: ImageFormat.JPEG
                 ))
             }
         }
