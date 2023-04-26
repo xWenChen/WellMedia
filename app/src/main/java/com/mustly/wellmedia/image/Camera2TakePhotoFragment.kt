@@ -7,6 +7,7 @@ import android.graphics.ImageFormat
 import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.SurfaceHolder
@@ -16,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.base.BaseFragment
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
+import com.mustly.wellmedia.lib.commonlib.utils.OrientationLiveData
 import com.mustly.wellmedia.lib.commonlib.utils.setNoDoubleClickListener
 import com.mustly.wellmedia.utils.*
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Camera2 拍照功能，代码参考自官方示例：https://github.com/android/camera-samples
@@ -42,6 +45,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         const val ANIMATION_FAST_MILLIS = 50L
         const val ANIMATION_SLOW_MILLIS = 100L
         private const val IMMERSIVE_FLAG_TIMEOUT = 500L
+        const val IMAGE_CAPTURE_TIMEOUT_MILLIS = 5000L
     }
 
     private var cameraManager: CameraManager? = null
@@ -77,6 +81,10 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
             }, ANIMATION_FAST_MILLIS)
         }
     }
+
+    val format = ImageFormat.JPEG
+    // 监听镜头方向旋转的 livedata
+    private lateinit var relativeOrientation: OrientationLiveData
 
     override fun initView(rootView: View) {
         lifecycleScope.launch(Dispatchers.Main) {
@@ -144,10 +152,10 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
             }
         })
 
-        if (camera == null) {
-            LogUtil.e(TAG, "can not obtain camera device, exit")
-            finish()
-            return
+        relativeOrientation = OrientationLiveData(requireContext(), characteristics!!).apply {
+            observe(viewLifecycleOwner) { orientation ->
+                LogUtil.d(TAG, "Orientation changed: $orientation")
+            }
         }
     }
 
@@ -174,7 +182,6 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
             LogUtil.e(TAG, "can not obtain cameraManager")
             return false
         }
-
 
         cameraId = findCameraId(cameraManager!!, LensFacing.BACK)
         if (cameraId.isBlank()) {
@@ -205,7 +212,6 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         }
 
         // 6. 获取相片尺寸
-        val format = ImageFormat.JPEG
         val size = characteristics.getMaxSize(format)
         // 7. 创建用于获取图片数据的 ImageReader
         imageReader = ImageReader.newInstance(size.width, size.height, format, IMAGE_BUFFER_SIZE)
@@ -286,6 +292,44 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
                 ) {
                     super.onCaptureCompleted(session, request, result)
                     // 14. 拍照完成，进行保存
+                    // 获取图像的时间戳
+                    val resultTimestamp = result.get(CaptureResult.SENSOR_TIMESTAMP)
+                    LogUtil.d(TAG, "Capture result received: $resultTimestamp")
+                    // 设置等待拍照结果返回的最大时长
+                    val timeoutRunnable = Runnable { cont.resume(null) }
+                    imageReaderHandler.postDelayed(timeoutRunnable, IMAGE_CAPTURE_TIMEOUT_MILLIS)
+                    // 在协程的上下文中循环，直到出现具有匹配时间戳的图像。我们需要再次启动协程上下文，
+                    // 因为回调是在提供给 `capture` 方法的处理程序中完成的，而不是在我们的协程上下文中
+                    lifecycleScope.launch(cont.context) {
+                        while (true) {
+                            // 从队列中取出图像，如果队列中没有图像，则会阻塞等待
+                            val image = imageQueue.take()
+                            // 非 DEPTH_JPEG 需要检查时间戳
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                                && image.format != ImageFormat.DEPTH_JPEG
+                                && image.timestamp != resultTimestamp
+                            ) {
+                                continue
+                            }
+                            LogUtil.d(TAG, "Matching image dequeued: ${image.timestamp}")
+
+                            imageReaderHandler.removeCallbacks(timeoutRunnable)
+                            imageReader?.setOnImageAvailableListener(null, null)
+
+                            // 清空剩余缓存图片
+                            while (imageQueue.size > 0) {
+                                imageQueue.take().close()
+                            }
+
+                            // 计算 EXIF 方向的 metadata
+                            val rotation = relativeOrientation.value ?: 0
+                            // 前置摄像头需要反转
+                            val mirrored = characteristics!!.get(
+                                CameraCharacteristics.LENS_FACING
+                            ) == CameraCharacteristics.LENS_FACING_FRONT
+
+                        }
+                    }
                 }
             },
             cameraHandler
