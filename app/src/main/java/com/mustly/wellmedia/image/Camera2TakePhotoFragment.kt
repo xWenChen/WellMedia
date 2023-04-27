@@ -20,10 +20,7 @@ import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
 import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
-import com.mustly.wellmedia.lib.commonlib.utils.OrientationLiveData
-import com.mustly.wellmedia.lib.commonlib.utils.computeExifOrientation
-import com.mustly.wellmedia.lib.commonlib.utils.setNoDoubleClickListener
-import com.mustly.wellmedia.utils.*
+import com.mustly.wellmedia.lib.commonlib.utils.*
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,7 +31,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -424,12 +420,14 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
                 ) == CameraCharacteristics.LENS_FACING_FRONT
                 val exifOrientation = computeExifOrientation(rotation, mirrored)
 
-                cont.resume(CaptureResultWrapper(
+                cont.resume(
+                    CaptureResultWrapper(
                     image,
                     result,
                     exifOrientation,
                     imageReader?.imageFormat ?: ImageFormat.JPEG
-                ))
+                )
+                )
             }
         }
     }

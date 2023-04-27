@@ -1,4 +1,4 @@
-package com.mustly.wellmedia.utils
+package com.mustly.wellmedia.lib.commonlib.utils
 
 import android.annotation.SuppressLint
 import android.graphics.ImageFormat
@@ -11,7 +11,6 @@ import android.util.Size
 import android.view.Display
 import android.view.Surface
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.Closeable
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
