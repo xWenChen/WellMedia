@@ -35,6 +35,7 @@ import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * todo 待讲解列表：1. Surface+SurfaceView, ImageReader, Camera2 框架
@@ -99,9 +100,21 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     private lateinit var relativeOrientation: OrientationLiveData
 
     override fun initView(rootView: View) {
-        lifecycleScope.launch(Dispatchers.Main) {
-            realInitView(rootView)
-        }
+        // surface 的回调监听不能太晚，否则会出现间歇性黑屏(出现概率较高)
+        binding.viewFinder.holder.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceDestroyed(holder: SurfaceHolder) = Unit
+
+            override fun surfaceChanged(
+                holder: SurfaceHolder,
+                format: Int,
+                width: Int,
+                height: Int
+            ) = Unit
+
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                realInitView()
+            }
+        })
     }
 
     override fun initData(context: Context) {
@@ -116,54 +129,31 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     override fun onDestroy() {
         super.onDestroy()
 
-        cameraManager = null
-        camera = null
-        characteristics = null
-
         cameraThread.quitSafely()
-        cameraHandler.removeCallbacksAndMessages(null)
-        imageReader = null
-
-        session?.close()
-        session = null
+        imageReaderThread.quitSafely()
     }
 
-    private suspend fun realInitView(rootView: View) {
+    private fun realInitView() = lifecycleScope.launch(Dispatchers.Main) {
         if (!preInitCamera()) {
             LogUtil.e(TAG, "preInitCamera fail, exit")
             finish()
         }
+        // 选择合适的尺寸，并配置 surface
+        val previewSize = getPreviewOutputSize(
+            // 获取屏幕尺寸
+            binding.viewFinder.display,
+            characteristics!!,
+            SurfaceHolder::class.java
+        )
+        LogUtil.d(TAG, "view size: ${binding.viewFinder.width} x ${binding.viewFinder.height}, Selected preview size: $previewSize")
+        binding.viewFinder.setAspectRatio(
+            previewSize.width,
+            previewSize.height
+        )
 
-        binding.viewFinder.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceDestroyed(holder: SurfaceHolder) = Unit
-
-            override fun surfaceChanged(
-                holder: SurfaceHolder,
-                format: Int,
-                width: Int,
-                height: Int
-            ) = Unit
-
-            override fun surfaceCreated(holder: SurfaceHolder) {
-                // Selects appropriate preview size and configures view finder
-                val previewSize = getPreviewOutputSize(
-                    // 获取屏幕尺寸
-                    binding.viewFinder.display,
-                    characteristics!!,
-                    SurfaceHolder::class.java
-                )
-                LogUtil.d(TAG, "view size: ${binding.viewFinder.width} x ${binding.viewFinder.height}")
-                LogUtil.d(TAG, "Selected preview size: $previewSize")
-                binding.viewFinder.setAspectRatio(
-                    previewSize.width,
-                    previewSize.height
-                )
-
-                // 4. surface 可用时，再初始化相机
-                binding.root.post { initializeCamera() }
-            }
-        })
-
+        // 4. surface 可用时，再初始化相机
+        initializeCamera()
+        // 监听角度旋转
         relativeOrientation = OrientationLiveData(requireContext(), characteristics!!).apply {
             observe(viewLifecycleOwner) { orientation ->
                 LogUtil.d(TAG, "Orientation changed: $orientation")
@@ -288,7 +278,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
 
     private suspend fun realSaveResult(
         result: CaptureResultWrapper
-    ) = suspendCancellableCoroutine<File?> { cont ->
+    ) = suspendCoroutine<File?> { cont ->
         LogUtil.d(TAG, "Result received: $result")
 
         when (result.format) {

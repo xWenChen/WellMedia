@@ -14,6 +14,7 @@ import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.Closeable
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlin.math.max
 import kotlin.math.min
 
@@ -71,7 +72,7 @@ suspend fun openCamera(
     cameraManager: CameraManager,
     cameraId: String,
     handler: Handler? = null
-): CameraDevice? = suspendCancellableCoroutine { cont ->
+): CameraDevice? = suspendCoroutine { cont ->
     val TAG = "openCamera"
 
     cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
@@ -93,9 +94,7 @@ suspend fun openCamera(
             val exc = RuntimeException("Camera $cameraId error: ($error) $msg")
             LogUtil.e(TAG, exc)
 
-            if (cont.isActive) {
-                cont.resume(null)
-            }
+            cont.resume(null)
         }
     }, handler)
 }
@@ -107,7 +106,7 @@ suspend fun createCaptureSession(
     device: CameraDevice,
     targets: List<Surface>,
     handler: Handler? = null
-): CameraCaptureSession? = suspendCancellableCoroutine { cont ->
+): CameraCaptureSession? = suspendCoroutine { cont ->
     // Create a capture session using the predefined targets; this also involves defining the
     // session state callback to be notified of when the session is ready
     device.createCaptureSession(targets, object : CameraCaptureSession.StateCallback() {
