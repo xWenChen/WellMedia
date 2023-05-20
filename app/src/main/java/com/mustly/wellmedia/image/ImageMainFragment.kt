@@ -11,12 +11,12 @@ import com.mustly.wellmedia.databinding.FragmentImageMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.IMAGE_MAIN_FRAGMENT)
-class ImageMainFragment : BaseFragment<FragmentImageMainBinding>() {
+class ImageMainFragment : BaseBindingFragment<FragmentImageMainBinding>() {
 
     override fun initView(rootView: View) {
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
         binding.rvImageMain.layoutManager = LinearLayoutManager(activity)
         binding.rvImageMain.adapter = BaseAdapter<ItemBean>()
             .setData(getFuncList())

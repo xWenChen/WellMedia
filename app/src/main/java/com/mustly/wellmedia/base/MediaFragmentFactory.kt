@@ -30,29 +30,3 @@ fun String.getFragmentClass(): Class<out Fragment>? {
         null
     }
 }
-
-object PageRoute {
-    const val AUDIO_MAIN_FRAGMENT = "audio_main_fragment"
-    const val AUDIO_PLAY_FRAGMENT = "audio_play_fragment"
-    const val AUDIO_RECORD_FRAGMENT = "audio_record_fragment"
-
-    const val VIDEO_MAIN_FRAGMENT = "video_main_fragment"
-    // VideoView 播放视频
-    const val VIDEO_VIEW_PLAY = "video_view_play"
-    // MediaPlayer 播放视频
-    const val MEDIA_PLAYER_PLAY_VIDEO = "media_player_play_video"
-    // MediaCodec 播放视频
-    const val MEDIA_CODEC_PLAY_VIDEO = "media_codec_play_video"
-    // CameraX 录制视频
-    const val CAMERAX_RECORD_VIDEO = "camerax_record_video"
-    // Camera2 录制视频
-    const val CAMERA2_RECORD_VIDEO = "camera2_record_video"
-    // Camera2 拍照
-    const val CAMERA2_TAKE_PHOTO = "camera2_take_photo"
-
-    const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
-
-    object Param {
-        const val KEY_FRAGMENT_TAG = "key_fragment_tag"
-    }
-}

@@ -3,9 +3,11 @@ package com.mustly.wellmedia.base
 import android.util.Log
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.databinding.ActivityFunctionBinding
+import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.utils.addFragment
 import com.mustly.wellmedia.utils.commitTransaction
 
+@Route(PageRoute.FUNCTION_ACTIVITY)
 class FunctionActivity : BaseActivity<ActivityFunctionBinding>() {
     companion object {
         const val TAG = "FunctionActivity"

@@ -12,6 +12,7 @@ import android.view.Display
 import android.view.Surface
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import java.io.Closeable
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.max
@@ -118,6 +119,17 @@ suspend fun createCaptureSession(
             cont.resume(null)
         }
     }, handler)
+}
+
+suspend fun createVideoCaptureSession(
+    device: CameraDevice,
+    targets: List<Surface>,
+    handler: Handler? = null,
+    callback: (Continuation<CameraCaptureSession?>) -> CameraCaptureSession.StateCallback
+): CameraCaptureSession? = suspendCoroutine { cont ->
+    // Create a capture session using the predefined targets; this also involves defining the
+    // session state callback to be notified of when the session is ready
+    device.createCaptureSession(targets, callback(cont), handler)
 }
 
 /**

@@ -7,20 +7,20 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseAdapter
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.ItemBean
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentVideoMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.VIDEO_MAIN_FRAGMENT)
-class VideoMainFragment : BaseFragment<FragmentVideoMainBinding>() {
+class VideoMainFragment : BaseBindingFragment<FragmentVideoMainBinding>() {
 
     override fun initView(rootView: View) {
 
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
         binding.rvVideoMain.layoutManager = LinearLayoutManager(activity)
         binding.rvVideoMain.adapter = BaseAdapter<ItemBean>()
             .setData(getFuncList())

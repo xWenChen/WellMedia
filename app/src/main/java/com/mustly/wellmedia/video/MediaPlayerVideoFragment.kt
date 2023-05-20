@@ -10,7 +10,7 @@ import android.view.View
 import android.widget.SeekBar
 import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.R
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentMediaPlayerVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
@@ -33,7 +33,7 @@ import kotlinx.coroutines.*
  * MediaPlayer 状态图：https://developer.android.com/images/mediaplayer_state_diagram.gif?hl=zh-cn
  * */
 @Route(PageRoute.MEDIA_PLAYER_PLAY_VIDEO)
-class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>() {
+class MediaPlayerVideoFragment : BaseBindingFragment<FragmentMediaPlayerVideoBinding>() {
     companion object {
         const val TAG = "MediaPlayerVideo"
     }
@@ -111,13 +111,13 @@ class MediaPlayerVideoFragment : BaseFragment<FragmentMediaPlayerVideoBinding>()
         }
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
         mediaPlayer.apply {
             mediaPlayer.reset()
             // 循环播放
             mediaPlayer.isLooping = true
             setScreenOnWhilePlaying(true)
-            setDataSource(context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
+            setDataSource(rootView.context, Uri.parse(R.raw.tanaka_asuka.uriPath()))
 
             setOnVideoSizeChangedListener { mMediaPlayer, width, height ->
                 changeViewSize(width, height)

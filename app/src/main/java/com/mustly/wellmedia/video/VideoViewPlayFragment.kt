@@ -6,7 +6,7 @@ import android.util.Log
 import android.view.View
 import android.widget.MediaController
 import com.mustly.wellmedia.R
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentVideoViewPlayBinding
 import com.mustly.wellmedia.lib.annotation.Route
@@ -23,7 +23,7 @@ import com.mustly.wellmedia.utils.uriPath
  * TODO 建议不使用
  * */
 @Route(PageRoute.VIDEO_VIEW_PLAY)
-class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>() {
+class VideoViewPlayFragment : BaseBindingFragment<FragmentVideoViewPlayBinding>() {
     companion object {
         const val TAG = "VideoViewPlayFragment"
     }
@@ -65,7 +65,7 @@ class VideoViewPlayFragment : BaseFragment<FragmentVideoViewPlayBinding>() {
         keepScreenOn(false)
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
 
     }
 

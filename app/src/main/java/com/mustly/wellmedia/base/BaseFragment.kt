@@ -1,16 +1,14 @@
 package com.mustly.wellmedia.base
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
-import com.mustly.wellmedia.utils.BindingUtil
+import com.mustly.wellmedia.lib.commonlib.route.Router
 import com.mustly.wellmedia.utils.checkAndRequestPermission
 import com.mustly.wellmedia.utils.checkAndRequestPermissions
 import com.mustly.wellmedia.utils.keepScreenOn
@@ -20,39 +18,27 @@ import kotlin.coroutines.resume
 /**
  * 基础 Fragment，封装了懒加载的相关逻辑
  * */
-abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
+abstract class BaseFragment : Fragment() {
     companion object {
         const val TAG = "BaseFragment"
     }
-
-    lateinit var binding: VB
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = BindingUtil.getDataBinding<VB>(
-            this,
-            BaseFragment::class.java,
-            0,
-            null,
-            false
-        ) ?: error("can not get binding")
+        val root = createView(inflater, container, savedInstanceState)
+        initData(root)
 
-        initView(binding.root)
-        initData(binding.root.context)
-
-        return binding.root
+        return root
     }
 
-    fun startFunctionActivity(
-        route: String,
-    ) {
-
-        startActivity(Intent(activity, FunctionActivity::class.java).apply {
+    fun startFunctionActivity(route: String, ) {
+        val context = activity ?: return
+        Router.go(context, PageRoute.FUNCTION_ACTIVITY) {
             putExtra(PageRoute.Param.KEY_FRAGMENT_TAG, route)
-        })
+        }
     }
 
     fun requestPermission(
@@ -80,6 +66,22 @@ abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
         }
     }
 
+    suspend fun suspendRequestPermissions(
+        permissions: Array<String>,
+        title: String = "",
+        desc: String = "",
+    ): Map<String, Boolean> = suspendCancellableCoroutine { cont ->
+        val aty = activity
+        if (aty == null) {
+            LogUtil.w(TAG, "check permission, not find activity")
+            return@suspendCancellableCoroutine cont.resume(permissions.associateWith { false })
+        }
+
+        aty.checkAndRequestPermissions(permissions, title, desc) {
+            cont.resume(it)
+        }
+    }
+
     fun keepScreenOn(enable: Boolean) {
         activity?.keepScreenOn(enable)
     }
@@ -95,7 +97,11 @@ abstract class BaseFragment<VB : ViewDataBinding> : Fragment() {
         }
     }
 
-    abstract fun initView(rootView: View)
+    abstract fun createView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View
 
-    abstract fun initData(context: Context)
+    abstract fun initData(rootView: View)
 }

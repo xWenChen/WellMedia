@@ -15,7 +15,7 @@ import android.view.SurfaceHolder
 import android.view.View
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentCamera2TakePhotoBinding
 import com.mustly.wellmedia.lib.annotation.Route
@@ -36,14 +36,14 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * todo 待讲解列表：1. Surface+SurfaceView, ImageReader, Camera2 框架
  *
- * Camera2 拍照功能，代码参考自官方示例：https://github.com/android/camera-samples
+ * Camera2 拍照功能，代码参考自官方示例：https://github.com/android/camera-samples/tree/main/Camera2Basic
  *
  * 使用 Camera2 拍照的步骤为：
  *
  * 1. 检查 <uses-permission android:name="android.permission.CAMERA" /> 权限
  * */
 @Route(PageRoute.CAMERA2_TAKE_PHOTO)
-class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>() {
+class Camera2TakePhotoFragment : BaseBindingFragment<FragmentCamera2TakePhotoBinding>() {
     companion object {
         const val TAG = "Camera2TakePhotoFragment"
 
@@ -96,7 +96,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
     private lateinit var relativeOrientation: OrientationLiveData
 
     override fun initView(rootView: View) {
-        // surface 的回调监听不能太晚，否则会出现间歇性黑屏(出现概率较高)
+        // surface 的回调监听不能设置的太晚(比如在申请权限之后再设置)，否则会出现间歇性黑屏(出现概率较高)
         binding.viewFinder.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceDestroyed(holder: SurfaceHolder) = Unit
 
@@ -113,7 +113,7 @@ class Camera2TakePhotoFragment : BaseFragment<FragmentCamera2TakePhotoBinding>()
         })
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
     }
 
     override fun onStop() {

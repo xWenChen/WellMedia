@@ -8,11 +8,10 @@ import android.view.View
 import android.widget.SeekBar
 import androidx.lifecycle.lifecycleScope
 import com.mustly.wellmedia.R
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentMediaCodecVideoBinding
 import com.mustly.wellmedia.lib.annotation.Route
-import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.medialib.base.PlayState
 import com.mustly.wellmedia.lib.medialib.base.isPlayState
 import com.mustly.wellmedia.utils.*
@@ -35,7 +34,7 @@ import kotlinx.coroutines.*
  * AudioTrack(音频轨道)搭配使用
  * */
 @Route(PageRoute.MEDIA_CODEC_PLAY_VIDEO)
-class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
+class MediaCodecVideoFragment : BaseBindingFragment<FragmentMediaCodecVideoBinding>() {
     companion object {
         const val TAG = "MediaCodecVideoFragment"
     }
@@ -99,7 +98,7 @@ class MediaCodecVideoFragment : BaseFragment<FragmentMediaCodecVideoBinding>() {
         }
     }
 
-    override fun initData(context: Context) {}
+    override fun initData(rootView: View) {}
 
     private fun changeViewSize(videoWidth: Int, videoHeight: Int) {
         if (videoWidth <= 0 || videoHeight <= 0) {

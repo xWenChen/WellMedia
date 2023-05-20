@@ -7,20 +7,20 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseAdapter
-import com.mustly.wellmedia.base.BaseFragment
+import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.ItemBean
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentAudioMainBinding
 import com.mustly.wellmedia.lib.annotation.Route
 
 @Route(PageRoute.AUDIO_MAIN_FRAGMENT)
-class AudioMainFragment : BaseFragment<FragmentAudioMainBinding>() {
+class AudioMainFragment : BaseBindingFragment<FragmentAudioMainBinding>() {
 
     override fun initView(rootView: View) {
 
     }
 
-    override fun initData(context: Context) {
+    override fun initData(rootView: View) {
         binding.rvAudioMain.layoutManager = LinearLayoutManager(activity)
         binding.rvAudioMain.adapter = BaseAdapter<ItemBean>()
             .setData(getFuncList())
