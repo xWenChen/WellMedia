@@ -133,6 +133,7 @@ class Camera2TakePhotoFragment : BaseBindingFragment<FragmentCamera2TakePhotoBin
         if (!preInitCamera()) {
             LogUtil.e(TAG, "preInitCamera fail, exit")
             finish()
+            return@launch
         }
         // 选择合适的尺寸，并配置 surface
         val previewSize = getPreviewOutputSize(

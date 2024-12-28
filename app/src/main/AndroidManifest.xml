@@ -17,9 +17,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WellMedia">
         <activity
-            android:name=".video.camera2.Camera2RecordVideoActivity"
-            android:exported="false" />
-        <activity
             android:name=".base.FunctionActivity"
             android:exported="false" />
         <activity

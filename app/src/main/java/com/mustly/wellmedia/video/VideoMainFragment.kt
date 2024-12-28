@@ -58,8 +58,8 @@ class VideoMainFragment : BaseBindingFragment<FragmentVideoMainBinding>() {
             ),
             ItemBean(
                 R.drawable.ic_number_4,
-                R.string.camerax_record_video,
-                PageRoute.CAMERAX_RECORD_VIDEO
+                R.string.camera2_record_video,
+                PageRoute.CAMERA2_RECORD_VIDEO
             ),
         )
     }

@@ -1,18 +1,14 @@
 package com.mustly.wellmedia.base
 
-import com.mustly.wellmedia.video.camera2.Camera2RecordVideoActivity
-
 /**
  * description:
  *
- * @author   wchenzhang
  * date：    2023/5/20 15:13
  * version   1.0
  * modify by
  */
 object PageRoute {
     const val FUNCTION_ACTIVITY = "function_activity"
-    const val CAMERA2_RECORD_VIDEO_ACTIVITY = "camera2RecordVideoActivity"
     const val CAMERA2_SELECTOR_FRAGMENT = "selectorFragment"
     const val CAMERA2_RECORD_MODE_FRAGMENT = "recordModeFragment"
     const val CAMERA2_FILTER_FRAGMENT = "filterFragment"
@@ -33,6 +29,8 @@ object PageRoute {
     const val CAMERAX_RECORD_VIDEO = "camerax_record_video"
     // Camera2 拍照
     const val CAMERA2_TAKE_PHOTO = "camera2_take_photo"
+    // Camera2 录制视频
+    const val CAMERA2_RECORD_VIDEO = "camera2RecordVideo"
 
     const val IMAGE_MAIN_FRAGMENT = "image_main_fragment"
 
