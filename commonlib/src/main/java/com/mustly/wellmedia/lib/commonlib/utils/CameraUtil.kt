@@ -105,7 +105,8 @@ suspend fun openCamera(
 suspend fun createCaptureSession(
     device: CameraDevice,
     targets: List<Surface>,
-    handler: Handler? = null
+    handler: Handler? = null,
+    onClose: (() -> Unit)? = null,
 ): CameraCaptureSession? = suspendCoroutine { cont ->
     // Create a capture session using the predefined targets; this also involves defining the
     // session state callback to be notified of when the session is ready
@@ -117,6 +118,11 @@ suspend fun createCaptureSession(
             val exc = RuntimeException("Camera ${device.id} session configuration failed")
             LogUtil.e("createCaptureSession", exc)
             cont.resume(null)
+        }
+
+        override fun onClosed(session: CameraCaptureSession) {
+            super.onClosed(session)
+            onClose?.invoke()
         }
     }, handler)
 }

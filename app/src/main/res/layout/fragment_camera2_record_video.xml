@@ -30,5 +30,14 @@
             android:scaleType="fitCenter"
             android:background="@drawable/ic_shutter"
             android:contentDescription="@string/start_record" />
+
+        <Chronometer
+            android:id="@+id/capture_timer"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="end|bottom"
+            android:textColor="@android:color/holo_red_light"
+            android:scaleType="fitCenter"
+            android:visibility="gone"/>
     </FrameLayout>
 </layout>

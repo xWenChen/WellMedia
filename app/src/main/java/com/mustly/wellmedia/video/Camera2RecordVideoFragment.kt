@@ -2,20 +2,33 @@ package com.mustly.wellmedia.video
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureFailure
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.media.MediaCodec
+import android.media.MediaCodecInfo
 import android.media.MediaFormat
+import android.media.MediaMuxer
+import android.media.MediaScannerConnection
 import android.os.ConditionVariable
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.view.MotionEvent
+import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import com.mustly.wellmedia.R
 import com.mustly.wellmedia.base.BaseBindingFragment
 import com.mustly.wellmedia.base.PageRoute
 import com.mustly.wellmedia.databinding.FragmentCamera2RecordVideoBinding
@@ -29,7 +42,11 @@ import com.mustly.wellmedia.lib.commonlib.utils.findCameraId
 import com.mustly.wellmedia.lib.commonlib.utils.getPreviewOutputSize
 import com.mustly.wellmedia.lib.commonlib.utils.openCamera
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * 本页面功能：Camera2 录像，MediaCodec 编解码，存入 mp4 文件。
@@ -38,6 +55,9 @@ import kotlinx.coroutines.launch
 class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVideoBinding>() {
     companion object {
         private const val TAG = "Camera2RecordVideo"
+        const val BIT_RATE = 10_000_000
+        const val FPS = 30
+        private const val MIN_TIME_MILLIS: Long = 1000L // 最少1秒
     }
 
     /**
@@ -70,7 +90,29 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
 
     private var videoSize = Size(1080, 1920)
 
-    private var mEncoder: MediaCodec? = null
+    /**
+     * 视频编码相关
+     * */
+    private var codec: MediaCodec? = null
+    private var codecSurface: Surface? = null
+    private val mimeType = MediaFormat.MIMETYPE_VIDEO_HEVC
+    private val mBufferInfo = MediaCodec.BufferInfo()
+    // 视频路径
+    private val outputFile: File by lazy {
+        File(
+            "${requireContext().cacheDir}/视频录制/camera2+MediaCodec录制.mp4"
+        ).apply {
+            if (!this.exists()) {
+                createNewFile()
+            }
+        }
+    }
+    private val mMuxer = MediaMuxer(outputFile.path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+    /**
+     * 录像数据的帧数。
+     * */
+    private var mFrameNum = 0
+    private var recordingStartMillis = 0L
 
     override fun initView(rootView: View) {
         val surface = binding.viewFinder
@@ -84,7 +126,7 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
                 try {
                     // 初始化相机
                     createCamera()
-                    createVideoEncoder()
+                    createMediaCodec()
                 } catch (e: Exception) {
                     LogUtil.e(TAG, e)
                 }
@@ -189,28 +231,196 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
         view ?: return
         event ?: return
 
-        // 异步处理录像操作
-        lifecycleScope.launch(Dispatchers.IO) {
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    if (!recordingStarted) {
-                        startRecord()
-                    }
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (!recordingStarted) {
+                    startRecord()
                 }
-                MotionEvent.ACTION_UP -> {
-
-                }
+            }
+            MotionEvent.ACTION_UP -> {
+                stopRecord()
             }
         }
     }
 
     private fun startRecord() {
+        // 预览和编码不在一个线程和 surface 上。
+        val previewSurface = binding.viewFinder.holder.surface ?: return
+        val encodeSurface = codecSurface ?: return
+        val mCamera = camera ?: return
+        val targets = listOf(previewSurface, encodeSurface)
+        // 异步处理录像操作
+        lifecycleScope.launch(Dispatchers.IO) {
+            recordingStartMillis = System.currentTimeMillis()
+            recordingStarted = true
+            cvRecordingStarted.open()
+            session?.close()
+            session = createCaptureSession(mCamera, targets, cameraHandler) {
+                recordingComplete = true
+                cvRecordingComplete.open()
+            } ?: return@launch
+            val recordRequest = session?.device?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)?.apply {
+                addTarget(previewSurface)
+                addTarget(previewSurface)
 
+                set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range(FPS, FPS))
+            }?.build() ?: return@launch
+
+            Log.d(TAG, "Recording started")
+
+            // Set color to RED and show timer when recording begins
+            binding.captureButton.setBackgroundResource(R.drawable.ic_shutter_pressed)
+            binding.captureTimer.visibility = View.VISIBLE
+            binding.captureTimer.start()
+
+            val captureCompleted = suspendCoroutine<Boolean> { cont ->
+                // 创建录像请求，并获取数据。
+                session?.setRepeatingRequest(
+                    recordRequest,
+                    object : CameraCaptureSession.CaptureCallback() {
+                        override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                            cont.resume(true)
+                        }
+
+                        override fun onCaptureFailed(
+                            session: CameraCaptureSession,
+                            request: CaptureRequest,
+                            failure: CaptureFailure
+                        ) {
+                            LogUtil.e(TAG, "record fail, error is ${failure.reason}")
+                            cont.resume(false)
+                        }
+                    },
+                    cameraHandler
+                )
+            }
+            // 捕获一帧数据成功。
+            if (captureCompleted && isCurrentlyRecording()) {
+                if (encodeData()) {
+                    mFrameNum++
+                }
+            }
+        }
     }
 
-    private fun createVideoEncoder() {
-        mEncoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_MPEG4)
-        //　todo 添加后续代码
+    private fun stopRecord() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            cvRecordingStarted.block()
+
+            session?.apply {
+                stopRepeating()
+                close()
+            }
+
+            binding.captureButton.setOnTouchListener(null)
+            binding.captureButton.setBackgroundResource(R.drawable.ic_shutter_normal)
+            binding.captureTimer.visibility = View.GONE
+            binding.captureTimer.stop()
+
+            cvRecordingComplete.block()
+
+            val elapsedTimeMillis = System.currentTimeMillis() - recordingStartMillis
+            if (elapsedTimeMillis < MIN_TIME_MILLIS) {
+                delay(MIN_TIME_MILLIS - elapsedTimeMillis)
+            }
+            // 延时 100 毫秒结束
+            delay(100L)
+            codec?.apply {
+                stop()
+                release()
+            }
+            // 通知系统扫描文件
+            MediaScannerConnection.scanFile(requireView().context, arrayOf(outputFile.absolutePath), null, null)
+            // 打开系统预览页
+            if (outputFile.exists()) {
+                startActivity(Intent().apply {
+                    action = Intent.ACTION_VIEW
+                    setDataAndType(
+                        outputFile.toUri(),
+                        MimeTypeMap.getSingleton().getMimeTypeFromExtension(outputFile.extension)
+                    )
+                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                })
+            }
+        }
+    }
+
+    /**
+     * 使用 MediaCodec 编码数据。
+     * */
+    private suspend fun encodeData(): Boolean {
+        val mEncoder = codec ?: return false
+        var encodedFrame = false
+        var mEncodedFormat: MediaFormat? = null
+        var mVideoTrack: Int = -1
+
+        while (true) {
+            val encoderIndex = mEncoder.dequeueOutputBuffer(mBufferInfo, 0)
+            if (encoderIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                // 获取编码器的结构，在可用 index 回调之前应该会触发一次。
+                mEncodedFormat = mEncoder.outputFormat
+            } else if (encoderIndex < 0) {
+                // 报了其他错误，没有可用的缓冲区
+                break
+            }
+
+            val encodedData = mEncoder.getOutputBuffer(encoderIndex)
+                ?: throw RuntimeException("encoderOutputBuffer $encoderIndex was null")
+
+            if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                // INFO_OUTPUT_FORMAT_CHANGED 被触发时，拿到的是 MediaCodec 的配置数据，配置数据不是我们需要的视频数据，忽略掉。
+                mBufferInfo.size = 0
+            }
+
+            // 有可写入的数据。
+            if (mBufferInfo.size != 0) {
+                // 限制 ByteBuffer 的数据量，以使其匹配上 BufferInfo
+                encodedData.position(mBufferInfo.offset)
+                encodedData.limit(mBufferInfo.offset + mBufferInfo.size)
+
+                if (mVideoTrack == -1) {
+                    mVideoTrack = mMuxer.addTrack(mEncodedFormat!!)
+                    // 设置方向
+                    mMuxer.setOrientationHint(characteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0)
+                    mMuxer.start()
+                }
+                // 将编码数据写入文件。
+                mMuxer.writeSampleData(mVideoTrack, encodedData, mBufferInfo)
+                encodedFrame = true
+            }
+
+            // 写完释放缓存区
+            mEncoder.releaseOutputBuffer(encoderIndex, false)
+
+            if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                Log.w(TAG, "到达流的尾部。")
+                break
+            }
+        }
+
+        return encodedFrame
+    }
+
+    private fun isCurrentlyRecording(): Boolean {
+        return recordingStarted && !recordingComplete
+    }
+
+    /**
+     * MediaCodec 用于编码视频
+     * */
+    private fun createMediaCodec() {
+        codec = MediaCodec.createEncoderByType(mimeType)
+        // 视频预览和视频编码不是一个 surface 和 线程。
+        codecSurface = codec?.createInputSurface() ?: return
+        //　创建 MediaFormat
+        val format = MediaFormat.createVideoFormat(mimeType, videoSize.width, videoSize.height)
+        format.setInteger(MediaFormat.KEY_COLOR_FORMAT,
+            MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+        format.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
+        // 每秒一个关键帧
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        codec?.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
     }
 
     private fun targetSurface() = binding.viewFinder.holder.surface
