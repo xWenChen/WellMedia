@@ -200,9 +200,9 @@ class HardwareDecoder(
             val nowStartTime = startMs
             // 将资源传递到解码器
             if (!inputDone) {
-                inputDone = decoder?.inputData(mExtractor) ?: inputDone
+                inputDone = decoder?.inputData(mExtractor) ?: false
             }
-            outputDone = decoder?.outputData(nowStartTime) ?: outputDone
+            outputDone = decoder?.outputData(nowStartTime) ?: false
         }
     }
 
