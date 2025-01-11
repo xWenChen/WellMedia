@@ -7,7 +7,7 @@ buildscript {
 
     dependencies {
         classpath "com.android.tools.build:gradle:7.2.0"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10"
     }
 }
 
@@ -45,7 +45,7 @@ dependencies {
     //implementation "org.gradle:gradle-core-api:$coreApiVer"
     implementation gradleApi()
     implementation "com.android.tools.build:gradle:7.2.0"
-    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30"
+    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.5.30"
     // implementation "com.android.tools.build:gradle-api:7.2.0"
     // implementation "javax.inject:javax.inject:1"
