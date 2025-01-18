@@ -21,6 +21,7 @@ class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
         anim?.interpolator = LinearInterpolator()
         binding.ivRotate.animation = anim
         anim?.start()
+        // 柱状图使用 Visualizer，参考这片文章 https://juejin.cn/post/7289330618977599544
     }
 
     override fun onDestroy() {
