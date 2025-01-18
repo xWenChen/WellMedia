@@ -17,7 +17,6 @@ import android.media.MediaMuxer
 import android.media.MediaScannerConnection
 import android.os.Handler
 import android.os.HandlerThread
-import android.util.Log
 import android.util.Size
 import android.view.MotionEvent
 import android.view.Surface
