@@ -18,7 +18,6 @@ import android.media.MediaScannerConnection
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
-import android.util.Range
 import android.util.Size
 import android.view.MotionEvent
 import android.view.Surface
@@ -42,7 +41,6 @@ import com.mustly.wellmedia.lib.commonlib.utils.createCaptureSession
 import com.mustly.wellmedia.lib.commonlib.utils.findCameraId
 import com.mustly.wellmedia.lib.commonlib.utils.getPreviewOutputSize
 import com.mustly.wellmedia.lib.commonlib.utils.openCamera
-import com.mustly.wellmedia.utils.HardwareDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -56,7 +54,7 @@ import java.io.File
 class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVideoBinding>() {
     companion object {
         private const val TAG = "Camera2RecordVideo"
-        const val BIT_RATE = 10_000_000
+        const val BIT_RATE = 20_000_000
         const val FPS = 30
         private const val MIN_TIME_MILLIS: Long = 1000L // 最少1秒
     }
@@ -81,9 +79,6 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
 
     @Volatile
     private var recordingStarted = false
-
-    @Volatile
-    private var recordingComplete = false
 
     private var videoSize = Size(1920, 1080)
 
@@ -110,10 +105,7 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
         }
     }
     private val mMuxer = MediaMuxer(outputFile.path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-    /**
-     * 录像数据的帧数。
-     * */
-    private var mFrameNum = 0
+
     private var recordingStartMillis = 0L
 
     override fun initView(rootView: View) {
@@ -142,11 +134,33 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
 
     private fun createCamera() = lifecycleScope.launch(Dispatchers.Main) {
         val surfaceView = binding.viewFinder
-        if (!preInitCamera()) {
-            LogUtil.e(TAG, "preInitCamera fail, exit")
-            finish()
+        // 1. 检查 CAMERA 权限
+        val isCameraGranted = suspendRequestPermission(
+            Manifest.permission.CAMERA,
+            "请求相机权限",
+            "我们需要使用相机以进行预览和录像",
+        )
+        if (!isCameraGranted) {
+            LogUtil.e(TAG, "camera permission is denied. can not preview")
             return@launch
         }
+
+        // 2. 获取 CameraManager
+        cameraManager = requireContext().applicationContext.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+
+        if (cameraManager == null) {
+            LogUtil.e(TAG, "can not obtain cameraManager")
+            return@launch
+        }
+
+        cameraId = findCameraId(cameraManager!!, LensFacing.BACK)
+        if (cameraId.isBlank()) {
+            LogUtil.e(TAG, "can not obtain camera id")
+            return@launch
+        }
+
+        // 3. 获取相机的属性集
+        characteristics = cameraManager!!.getCameraCharacteristics(cameraId)
         // 选择合适的尺寸，并配置 surface
         videoSize = getPreviewOutputSize(
             // 获取屏幕尺寸
@@ -154,6 +168,7 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
             characteristics!!,
             SurfaceHolder::class.java
         )
+
         LogUtil.d(TAG, "view size: ${surfaceView.width} x ${surfaceView.height}, Selected preview size: $videoSize")
         surfaceView.setAspectRatio(
             videoSize.width,
@@ -163,64 +178,15 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
         createMediaCodec()
 
         // 4. surface 可用时，再初始化相机
-        initializeCamera()
-        // 监听角度旋转
-        relativeOrientation = OrientationLiveData(requireContext(), characteristics!!).apply {
-            observe(viewLifecycleOwner) { orientation ->
-                LogUtil.d(Camera2TakePhotoFragment.TAG, "Orientation changed: $orientation")
-            }
-        }
-    }
-
-    /**
-     * 预初始化部分相机信息
-     * */
-    private suspend fun preInitCamera(): Boolean {
-        // 1. 检查 CAMERA 权限
-        val isCameraGranted = suspendRequestPermission(
-            Manifest.permission.CAMERA,
-            "请求相机权限",
-            "我们需要使用相机以进行预览和录像",
-        )
-        if (!isCameraGranted) {
-            LogUtil.e(TAG, "camera permission is denied. can not preview")
-            return false
-        }
-
-        // 2. 获取 CameraManager
-        cameraManager = requireContext().applicationContext
-            .getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-
-        if (cameraManager == null) {
-            LogUtil.e(TAG, "can not obtain cameraManager")
-            return false
-        }
-
-        cameraId = findCameraId(cameraManager!!, LensFacing.BACK)
-        if (cameraId.isBlank()) {
-            LogUtil.e(TAG, "can not obtain camera id")
-            return false
-        }
-
-        // 3. 获取相机的属性集
-        characteristics = cameraManager!!.getCameraCharacteristics(cameraId)
-
-        return true
-    }
-
-    /**
-     * surface 可用后，初始化相机
-     * */
-    private suspend fun initializeCamera() {
         // 5. surface 可用时，打开相机
-        camera = openCamera(cameraManager!!, cameraId, cameraHandler) ?: return
+        camera = openCamera(cameraManager!!, cameraId, cameraHandler) ?: return@launch
 
         val previewSurface = binding.viewFinder.holder.surface
 
         // 用于预览和录像的 target surfaces
         val targets = listOf(previewSurface, codecSurface)
         // 8. 创建会话
-        session = createCaptureSession(camera!!, targets, cameraHandler) ?: return
+        session = createCaptureSession(camera!!, targets, cameraHandler) ?: return@launch
         // 9. 创建预览请求
         val previewRequest = camera!!.createCaptureRequest(
             CameraDevice.TEMPLATE_PREVIEW
@@ -228,8 +194,14 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
             // 预览画面输出到 SurfaceView
             addTarget(previewSurface)
         }.build()
-        // 9. 提交预览请求，重复发送请求，直到调用了 session.stopRepeating() 方法
+        // 10. 提交预览请求，重复发送请求，直到调用了 session.stopRepeating() 方法
         session!!.setRepeatingRequest(previewRequest, null, cameraHandler)
+        // 监听角度旋转
+        relativeOrientation = OrientationLiveData(requireContext(), characteristics!!).apply {
+            observe(viewLifecycleOwner) { orientation ->
+                LogUtil.d(Camera2TakePhotoFragment.TAG, "Orientation changed: $orientation")
+            }
+        }
     }
 
     private fun dealRecordVideo(view: View?, event: MotionEvent?) {
@@ -256,17 +228,15 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
         lifecycleScope.launch(Dispatchers.IO) {
             recordingStartMillis = System.currentTimeMillis()
             recordingStarted = true
-            recordingComplete = false
+
             val recordRequest = mCamera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
                 addTarget(previewSurface)
                 addTarget(codecSurface)
-
-                set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, Range(FPS, FPS))
             }.build()
 
-            Log.d(TAG, "Recording started")
+            LogUtil.d(TAG, "Recording start.")
 
-            // Set color to RED and show timer when recording begins
+            // 更新布局信息
             withContext(Dispatchers.Main) {
                 binding.captureButton.setBackgroundResource(R.drawable.ic_shutter_pressed)
                 binding.captureTimer.visibility = View.VISIBLE
@@ -282,11 +252,10 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
                         if (isCurrentlyRecording()) {
                             try {
                                 LogUtil.w(TAG, "encodeData")
-                                if (encodeData()) {
-                                    mFrameNum++
-                                }
+                                encodeData()
+                                LogUtil.w(TAG, "encodeData end")
                             } catch (e: Exception) {
-                                LogUtil.e(HardwareDecoder.TAG, e)
+                                LogUtil.e(TAG, e)
                             }
                         }
                     }
@@ -305,17 +274,15 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
     }
 
     private fun stopRecord() {
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.Main) {
             session?.apply {
                 stopRepeating()
                 close()
             }
 
-            withContext(Dispatchers.Main) {
-                binding.captureButton.setBackgroundResource(R.drawable.ic_shutter_normal)
-                binding.captureTimer.visibility = View.GONE
-                binding.captureTimer.stop()
-            }
+            binding.captureButton.setBackgroundResource(R.drawable.ic_shutter_normal)
+            binding.captureTimer.visibility = View.GONE
+            binding.captureTimer.stop()
 
             val elapsedTimeMillis = System.currentTimeMillis() - recordingStartMillis
             if (elapsedTimeMillis < MIN_TIME_MILLIS) {
@@ -327,6 +294,9 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
                 stop()
                 release()
             }
+            mMuxer.stop()
+            mMuxer.release()
+            LogUtil.d(TAG, "停止录像。")
             // 通知系统扫描文件
             MediaScannerConnection.scanFile(requireView().context, arrayOf(outputFile.absolutePath), null, null)
             // 打开系统预览页
@@ -343,7 +313,6 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
                 })
             }
             recordingStarted = false
-            recordingComplete = true
         }
     }
 
@@ -353,52 +322,71 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
     private fun encodeData(): Boolean {
         val mEncoder = codec ?: return false
         var encodedFrame = false
-        var mEncodedFormat: MediaFormat? = mEncoder.outputFormat
         var mVideoTrack: Int = -1
+        var mEncodedFormat: MediaFormat? = null
 
         while (true) {
-            val encoderIndex = mEncoder.dequeueOutputBuffer(mBufferInfo, 0)
-            if (encoderIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                // 获取编码器的结构，在可用 index 回调之前应该会触发一次。
+            // 这里catch下，startRecord 和 stopRecord 位于不同的线程。处理录像操作可能已停止，但仍在获取OutputBuffer的情况。
+            val encoderStatus = try {
+                mEncoder.dequeueOutputBuffer(mBufferInfo, -1)
+            } catch (e: Exception) {
+                LogUtil.e(TAG, e)
+                MediaCodec.INFO_TRY_AGAIN_LATER
+            }
+
+            if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
+                LogUtil.w(TAG, "not get $encoderStatus, quit")
+                break;
+            }
+
+            if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                LogUtil.d(TAG, "encoder output format changed: $mEncodedFormat")
+                // 在收到buffer数据前回调，通常只回调一次，MediaFormat包含MediaMuxer需要的csd-0和csd-1数据。
                 mEncodedFormat = mEncoder.outputFormat
-            } else if (encoderIndex < 0) {
-                // 报了其他错误，没有可用的缓冲区
+                continue
+            }
+
+            if (encoderStatus < 0 || mEncodedFormat == null) {
+                LogUtil.w(TAG, "unexpected result from encoder.dequeueOutputBuffer: $encoderStatus")
+                continue
+            }
+
+            val encodedData = mEncoder.getOutputBuffer(encoderStatus)
+            if (encodedData == null) {
+                LogUtil.e(TAG, "encoderOutputBuffer $encoderStatus was null")
+                continue
+            }
+
+            if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                LogUtil.d(TAG, "忽略 BUFFER_FLAG_CODEC_CONFIG")
+                continue
+            }
+
+            if (mBufferInfo.size == 0) {
+                LogUtil.d(TAG, "mBufferInfo.size == 0.")
+                continue
+            }
+
+            // 限制 ByteBuffer 的数据量，以使其匹配上 BufferInfo
+            encodedData.position(mBufferInfo.offset)
+            encodedData.limit(mBufferInfo.offset + mBufferInfo.size)
+
+            if (mVideoTrack == -1) {
+                mVideoTrack = mMuxer.addTrack(mEncodedFormat)
+                mMuxer.setOrientationHint(characteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0)
+                mMuxer.start()
+                LogUtil.d(TAG, "Started media muxer")
+            }
+
+            mMuxer.writeSampleData(mVideoTrack, encodedData, mBufferInfo)
+            encodedFrame = true
+
+            LogUtil.d(TAG, "sent " + mBufferInfo.size + " bytes to muxer, ts= ${mBufferInfo.presentationTimeUs}")
+            mEncoder.releaseOutputBuffer(encoderStatus, false)
+
+            if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                LogUtil.w(TAG, "reached end of stream unexpectedly.")
                 break
-            } else {
-                val encodedData = mEncoder.getOutputBuffer(encoderIndex)
-
-                if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    // INFO_OUTPUT_FORMAT_CHANGED 被触发时，拿到的是 MediaCodec 的配置数据，配置数据不是我们需要的视频数据，忽略掉。
-                    mBufferInfo.size = 0
-                }
-
-                // 有可写入的数据。
-                if (mBufferInfo.size != 0) {
-                    // 限制 ByteBuffer 的数据量，以使其匹配上 BufferInfo
-                    encodedData?.position(mBufferInfo.offset)
-                    encodedData?.limit(mBufferInfo.offset + mBufferInfo.size)
-
-                    if (mVideoTrack == -1) {
-                        mVideoTrack = mMuxer.addTrack(mEncodedFormat!!)
-                        // 设置方向
-                        mMuxer.setOrientationHint(characteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0)
-                        mMuxer.start()
-                        LogUtil.w(TAG, "mMuxer.start()")
-                    }
-                    // 将编码数据写入文件。
-                    encodedData?.let {
-                        mMuxer.writeSampleData(mVideoTrack, it, mBufferInfo)
-                        encodedFrame = true
-                    }
-                }
-
-                // 写完释放缓存区
-                mEncoder.releaseOutputBuffer(encoderIndex, false)
-
-                if ((mBufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                    Log.w(TAG, "到达流的尾部。")
-                    break
-                }
             }
         }
 
@@ -406,7 +394,7 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
     }
 
     private fun isCurrentlyRecording(): Boolean {
-        return recordingStarted && !recordingComplete
+        return recordingStarted
     }
 
     /**
@@ -416,8 +404,7 @@ class Camera2RecordVideoFragment : BaseBindingFragment<FragmentCamera2RecordVide
         codec = MediaCodec.createEncoderByType(mimeType)
         //　创建 MediaFormat
         val format = MediaFormat.createVideoFormat(mimeType, videoSize.width, videoSize.height)
-        format.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-            MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+        format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
         format.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
         format.setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
         // 每秒一个关键帧
