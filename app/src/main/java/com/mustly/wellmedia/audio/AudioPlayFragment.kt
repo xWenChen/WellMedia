@@ -21,6 +21,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * 音频播放效果展示：
+ * 1、图片转圈功能。
+ * 2、fft(快速傅里叶变换)振幅效果展示。
+ * 3、音频播放与进度控制。
+ * */
 @Route(PageRoute.AUDIO_PLAY_FRAGMENT)
 class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
 
