@@ -44,6 +44,8 @@ object AudioPlayManager {
      * 是否启用 AudioTrack，true 表示启用 AudioTrack，false 表示使用 MediaPlayer
      *
      * AudioTrack 不支持 mp3，只支持 PCM，要使用 AudioTrack，需要使用 MediaCodec 解码。参考 [HardwareDecoder]。
+     *
+     * MediaPlayer 可以直接设置 mp3 资源。
      * */
     var useAudioTrack = false
 
@@ -85,6 +87,7 @@ object AudioPlayManager {
                 } else {
                     mediaPlayer?.start()
                 }
+                playState = AudioTrack.PLAYSTATE_PLAYING
             } catch (e: Exception) {
                 LogUtil.e(TAG, e)
             }
