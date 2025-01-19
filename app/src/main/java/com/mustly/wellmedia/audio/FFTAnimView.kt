@@ -76,7 +76,7 @@ class FFTAnimView : View {
         if (magnitudes.isEmpty()) {
             return
         }
-        // 显示 25 个波形，skipCount的取值根据具体效果优化，1024 / 2 + 1 = 513 / 25 = 20
+        // 显示 25 个波形，skipCount的取值根据具体效果优化，通常是20个，1024 / 2 + 1 = 513 / 25 = 20
         val skipCount = 20
         mRect.set(0, 0, width, height)
         for (i in 0 until 25) {
