@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 音频播放效果展示：
+ * MediaPlayer播放音频效果展示，如果要使用AudioTrack，则需要手动将mp3解码成PCM数据(可以使用MediaCodec实现)：
  * 1、图片转圈功能。
  * 2、fft(快速傅里叶变换)振幅效果展示。
  * 3、音频播放与进度控制。
