@@ -20,6 +20,27 @@
             android:src="@mipmap/bg_audio"
             app:shapeAppearanceOverlay="@style/circleStyle"
             />
+
+        <com.mustly.wellmedia.audio.FFTAnimView
+            android:id="@+id/audioVisualizer"
+            android:layout_width="200dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/fftSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"
+            android:text="显示声波振幅图："
+            android:textOn="打开"
+            android:textOff="关闭"
+            android:layout_marginTop="4dp"
+            app:track="@drawable/track"
+            android:thumb="@drawable/thumb"
+            />
         
     </LinearLayout>
 </layout>

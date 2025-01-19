@@ -1,15 +1,15 @@
 package com.mustly.wellmedia.utils
 
 import android.content.Context
-import android.media.AudioAttributes
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioTrack
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaPlayer
 import android.media.audiofx.Visualizer
 import android.net.Uri
 import com.mustly.wellmedia.R
+import com.mustly.wellmedia.audio.FFTAnimView
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
 import com.mustly.wellmedia.lib.medialib.base.bean.HardwareMediaInfo
 import kotlinx.coroutines.Dispatchers
@@ -40,14 +40,15 @@ object AudioPlayManager {
     const val CHANNEL = AudioFormat.CHANNEL_OUT_STEREO // 双声道
     const val BIT_DEPTH = AudioFormat.ENCODING_PCM_16BIT // 两个字节的位深
 
-    val defaultInfo = Triple(SAMPLE_RATE, CHANNEL, BIT_DEPTH)
-
     /**
      * 是否启用 AudioTrack，true 表示启用 AudioTrack，false 表示使用 MediaPlayer
+     *
+     * AudioTrack 不支持 mp3，只支持 PCM，要使用 AudioTrack，需要使用 MediaCodec 解码。参考 [HardwareDecoder]。
      * */
-    var useAudioTrack = true
+    var useAudioTrack = false
 
     var audioTrack: AudioTrack? = null
+    var mediaPlayer: MediaPlayer? = null
 
     // 缓冲区字节大小
     private var mBufferSizeInBytes = 0
@@ -57,28 +58,15 @@ object AudioPlayManager {
     var visualizer: Visualizer? = null
 
     fun init(context: Context?) {
-        val info = findMp3Info(context, Uri.parse(R.raw.Never_Be_Alone.uriPath()))
+        val info = findMp3Info(context, Uri.parse(R.raw.never_be_alone.uriPath()))
         val rate = info.sampleRate.let { if (it <= 0) SAMPLE_RATE else it }
         val track = info.voiceTrack
         val depth = info.sampleDepth.let { if (it <=0) BIT_DEPTH else it }
         if (useAudioTrack) {
-            // 初始化 AudioTrack
-            mBufferSizeInBytes = AudioTrack.getMinBufferSize(rate, track, depth)
-            // 说明 https://stackoverflow.com/questions/50866991/android-audiotrack-playback-fast
-            audioTrack = AudioTrack(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build(),
-                AudioFormat.Builder()
-                    .setSampleRate(rate)
-                    .setChannelMask(track)
-                    .setEncoding(depth)
-                    .build(),
-                mBufferSizeInBytes,
-                AudioTrack.MODE_STREAM,
-                AudioManager.AUDIO_SESSION_ID_GENERATE
-            )
+
+        } else {
+            mediaPlayer = MediaPlayer.create(context, R.raw.never_be_alone)
+            //mediaPlayer?.prepare()
             playState = AudioTrack.STATE_INITIALIZED
         }
     }
@@ -92,7 +80,11 @@ object AudioPlayManager {
         LogUtil.d(TAG, "开始播放...")
         withContext(Dispatchers.IO) {
             try {
-                playAudioData(context)
+                if (useAudioTrack) {
+                    //playAudioData(context)
+                } else {
+                    mediaPlayer?.start()
+                }
             } catch (e: Exception) {
                 LogUtil.e(TAG, e)
             }
@@ -110,7 +102,11 @@ object AudioPlayManager {
         LogUtil.d(TAG, "继续播放...")
         playState = AudioTrack.PLAYSTATE_PLAYING
         try {
-            audioTrack?.play()
+            if (useAudioTrack) {
+                audioTrack?.play()
+            } else {
+                mediaPlayer?.start()
+            }
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
@@ -127,7 +123,11 @@ object AudioPlayManager {
         LogUtil.d(TAG, "暂停播放...")
         playState = AudioTrack.PLAYSTATE_PAUSED
         try {
-            audioTrack?.pause()
+            if (useAudioTrack) {
+                audioTrack?.pause()
+            } else {
+                mediaPlayer?.pause()
+            }
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
@@ -144,7 +144,11 @@ object AudioPlayManager {
         LogUtil.d(TAG, "停止播放...")
         playState = AudioTrack.PLAYSTATE_STOPPED
         try {
-            audioTrack?.stop()
+            if (useAudioTrack) {
+                audioTrack?.stop()
+            } else {
+                mediaPlayer?.stop()
+            }
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
@@ -157,35 +161,16 @@ object AudioPlayManager {
         LogUtil.d(TAG, "结束播放")
         playState = AudioTrack.STATE_INITIALIZED
         try {
-            audioTrack?.release()
+            if (useAudioTrack) {
+                audioTrack?.release()
+                audioTrack = null
+            } else {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            }
             releaseVisualizer()
-            audioTrack = null
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
-        }
-    }
-
-    /**
-     * 播放 PCM 音频
-     */
-    private fun playAudioData(context: Context) {
-        context.resources.openRawResource(R.raw.Never_Be_Alone).use {
-            val bytes = ByteArray(mBufferSizeInBytes)
-            var length = 0
-            audioTrack?.play()
-            playState = AudioTrack.PLAYSTATE_PLAYING
-            try {
-                while (length != -1) {
-                    length = it.read(bytes)
-                    if (length != -1) {
-                        audioTrack?.write(bytes, 0, length)
-                    }
-                }
-            } catch (e: Exception) {
-                LogUtil.e(TAG, e)
-                audioTrack?.stop()
-                playState = AudioTrack.PLAYSTATE_STOPPED
-            }
         }
     }
 
@@ -210,8 +195,9 @@ object AudioPlayManager {
 
     // Waveform data(水波纹数据): 使用 getWaveForm(byte[])方法连续 8 位（无符号）单声道采样
     // Frequency data(频域数据): 使用 getFft(byte[])方法实现 8 位幅度 FFT
-    fun initVisualizer() {
-        val sessionId = audioTrack?.audioSessionId ?: return LogUtil.e(TAG, "initVisualizer fail, id is null. ")
+    fun initVisualizer(view: FFTAnimView?) {
+        view ?: return
+        val sessionId = mediaPlayer?.audioSessionId ?: return LogUtil.e(TAG, "initVisualizer fail, id is null. ")
         visualizer = Visualizer(sessionId)
         // 通过setCaptureSize函数设置采样率大小，其大小我们一般通过getCaptureSizeRange函数来获取。
         // getCaptureSizeRange函数返回两个int类型数组，第一个表示最小值，第二个表示最大值,用来表示采样值的范围。
@@ -229,10 +215,10 @@ object AudioPlayManager {
 
                 override fun onFftDataCapture(visualizer: Visualizer?, fft: ByteArray?, samplingRate: Int) {
                     // 快速傅里叶回调
-
+                    view.update(fft)
                 }
             },
-            Visualizer.getMaxCaptureRate() / 2,
+            Visualizer.getMaxCaptureRate() / 2, // 取 Visualizer.getMaxCaptureRate() / 2 是波形是对称的，前半段和后半段是对称的。
             false,
             true
         )
@@ -253,6 +239,7 @@ object AudioPlayManager {
         LogUtil.d(TAG, "结束波形监听...")
         try {
             enableVisualizer(false)
+            visualizer?.release()
             visualizer = null
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
