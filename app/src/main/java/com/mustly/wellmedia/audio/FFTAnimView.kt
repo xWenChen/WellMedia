@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.View
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.min
 
 
 /**
@@ -75,13 +76,16 @@ class FFTAnimView : View {
         if (magnitudes.isEmpty()) {
             return
         }
+        // 显示 25 个波形，skipCount的取值根据具体效果优化，1024 / 2 + 1 = 513 / 25 = 20
+        val skipCount = 20
         mRect.set(0, 0, width, height)
-        for (i in magnitudes.indices) {
+        for (i in 0 until 25) {
+            val j = min(i * skipCount, magnitudes.size - 1)
             //LogUtil.d(TAG, "draw info: ｛left: ${27f * i}, top: ${mRect.height() - magnitudes[i] * 3f}, right: ${27f * i + 24}, height: ${mRect.height().toFloat()}｝")
-            // 宽为 24，高为 振幅 * 3。
+            // 宽为 24，高为 振幅 * 10，保留4dp的基础高度。根据实际效果调整。
             canvas?.drawRect(
                 27f * i,
-                mRect.height() - magnitudes[i] * 3f,
+                min(mRect.height() - magnitudes[j] * 10f, mRect.height() - 12f),
                 27f * i + 24,
                 mRect.height().toFloat(),
                 mPaint
