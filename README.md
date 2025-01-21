@@ -8,3 +8,5 @@
 - MediaPlayer 播放 Mp4 实现
 - MediaCodec 播放 MP4 实现
 - Camera2 拍照实现
+- Camera2 录制MP4实现
+- MediaPlayer播放MP3实现，并自带频域图。
