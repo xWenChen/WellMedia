@@ -27,6 +27,18 @@
             android:layout_centerInParent="true"
             />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/ivRecord"
+            android:textColor="@color/main_blue"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:text="按住麦克风录音，松开结束录音。"
+            />
+
     </RelativeLayout>
 
 </layout>
