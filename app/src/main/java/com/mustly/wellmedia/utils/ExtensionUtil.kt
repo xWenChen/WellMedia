@@ -34,6 +34,13 @@ val Int.stringRes
         MediaApplication.getAppContext().getString(stringRes)
     }
 /**
+ * 返回dp尺寸资源的文本
+ * */
+val Int.dimenRes
+    get() = this.let { dimenRes ->
+        MediaApplication.getAppContext().resources.getDimensionPixelSize(dimenRes)
+    }
+/**
  * 获取资源 id 的 uri 路径表示
  * */
 fun Int.uriPath(): String = "android.resource://${MediaApplication.getAppContext().packageName}/$this"

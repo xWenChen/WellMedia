@@ -7,6 +7,26 @@
 
     </data>
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
+        <com.mustly.wellmedia.audio.AudioRecordAnimView
+            android:id="@+id/audioRecordAnimView"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_centerHorizontal="true"
+            android:layout_above="@id/ivRecord"
+            />
+        <ImageView
+            android:id="@+id/ivRecord"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@drawable/ic_mic"
+            android:layout_marginTop="8dp"
+            android:layout_centerInParent="true"
+            />
+
+    </RelativeLayout>
 
 </layout>
