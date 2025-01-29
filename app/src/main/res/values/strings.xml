@@ -9,7 +9,8 @@
     <string name="open">展开</string>
     <string name="close">收起</string>
     <string name="audio_play">MediaPlayer播放音频</string>
-    <string name="audio_record">音频录制</string>
+    <string name="audio_record">AAC格式音频录制</string>
+    <string name="audio_record_mp3">MP3格式音频录制</string>
     <string name="video_view_play">VideoView 播放视频</string>
     <string name="media_player_play_video">MediaPlayer 播放视频</string>
     <string name="media_codec_play_video">MediaCodec 播放视频</string>

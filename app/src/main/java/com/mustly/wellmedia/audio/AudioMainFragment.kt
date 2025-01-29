@@ -42,7 +42,8 @@ class AudioMainFragment : BaseBindingFragment<FragmentAudioMainBinding>() {
     private fun getFuncList(): MutableList<ItemBean> {
         return mutableListOf(
             ItemBean(R.drawable.ic_audio_play, R.string.audio_play, PageRoute.AUDIO_PLAY_FRAGMENT),
-            ItemBean(R.drawable.ic_audio_record, R.string.audio_record, PageRoute.AUDIO_RECORD_FRAGMENT)
+            ItemBean(R.drawable.ic_audio_record, R.string.audio_record, PageRoute.AUDIO_RECORD_FRAGMENT),
+            ItemBean(R.drawable.ic_audio_record, R.string.audio_record_mp3, PageRoute.MP3_RECORD_FRAGMENT),
         )
     }
 }

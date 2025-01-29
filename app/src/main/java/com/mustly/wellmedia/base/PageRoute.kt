@@ -17,6 +17,7 @@ object PageRoute {
     const val AUDIO_MAIN_FRAGMENT = "audio_main_fragment"
     const val AUDIO_PLAY_FRAGMENT = "audio_play_fragment"
     const val AUDIO_RECORD_FRAGMENT = "audio_record_fragment"
+    const val MP3_RECORD_FRAGMENT = "mp3_record_fragment"
 
     const val VIDEO_MAIN_FRAGMENT = "video_main_fragment"
     // VideoView 播放视频
