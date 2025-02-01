@@ -43,6 +43,12 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    // AGP4.0后，有了 cmakelist 配置，就不需要这个了。否则会出现 merge so 错误。
+    /*sourceSets {
+        main {
+            jniLibs.srcDirs = ["libs"]
+        }
+    }*/
 }
 
 dependencies {

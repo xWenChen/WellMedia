@@ -12,11 +12,13 @@ import com.mustly.wellmedia.base.*
 import com.mustly.wellmedia.databinding.FragmentAudioRecordBinding
 import com.mustly.wellmedia.lib.annotation.Route
 import com.mustly.wellmedia.lib.commonlib.log.LogUtil
+import com.mustly.wellmedia.utils.MP3LameEncoder
 import com.mustly.wellmedia.utils.isPermissionGranted
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.RandomAccessFile
 
 /**
  * 音频录制。AndroidMediaCodec不支持MP3格式，使用Native将PCM编码为MP3格式。Native层使用LAME（一个开源的 MP3 编码库）。
@@ -31,15 +33,14 @@ class MP3AudioRecordFragment : BaseBindingFragment<FragmentAudioRecordBinding>()
     var isRecording = false
     // 音频录制，获取 PCM 数据
     var recorder: AudioRecord? = null
-    private var muxer: MediaMuxer? = null
+    var encoder: MP3LameEncoder? = null
     private val sample = 44100
     private var minBufferSize = 0
     private var isRecorderInit = false
 
-    // 视频路径
-    private val outputFile: File by lazy {
+    private val mFile: File by lazy {
         File(
-            "${MediaApplication.getAppContext().externalCacheDir}/音频录制/音频录制为mp3.mp4"
+            "${MediaApplication.getAppContext().externalCacheDir}/音频录制/音频录制为mp3.mp3"
         ).apply {
             this.parentFile?.let { dir ->
                 if (!dir.exists()) {
@@ -52,10 +53,14 @@ class MP3AudioRecordFragment : BaseBindingFragment<FragmentAudioRecordBinding>()
         }
     }
 
+    // 视频路径
+    private val outputFile: RandomAccessFile by lazy {
+        RandomAccessFile(mFile, "rw")
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun initView(rootView: View) {
         initEncoder()
-        initMuxer()
         // 设置点击事件
         binding.ivRecord.setOnTouchListener { v, event ->
             // 监听点击事件，触发动画，按下播放，松开结束
@@ -71,19 +76,19 @@ class MP3AudioRecordFragment : BaseBindingFragment<FragmentAudioRecordBinding>()
     override fun onStop() {
         super.onStop()
         try {
-            /*if (recorder?.state == AudioRecord.RECORDSTATE_RECORDING) {
+            if (recorder?.state == AudioRecord.RECORDSTATE_RECORDING) {
                 recorder?.stop()
-                encoder?.stop()
-                muxer?.stop()
+                try {
+                    outputFile.close()
+                } catch (e: Exception) {
+                    LogUtil.e(TAG, e)
+                }
             }
             recorder?.release()
             recorder = null
 
-            encoder?.release()
+            encoder?.destroy()
             encoder = null
-
-            muxer?.release()
-            muxer = null*/
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
@@ -107,14 +112,7 @@ class MP3AudioRecordFragment : BaseBindingFragment<FragmentAudioRecordBinding>()
     }
 
     private fun initEncoder() {
-    }
-
-    private fun initMuxer() {
-        try {
-            muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-        } catch (e: Exception) {
-            LogUtil.e(TAG, e)
-        }
+        encoder = MP3LameEncoder()
     }
 
     private fun startRecord() = lifecycleScope.launch(Dispatchers.Main) {
@@ -154,87 +152,46 @@ class MP3AudioRecordFragment : BaseBindingFragment<FragmentAudioRecordBinding>()
      * 异步线程实现 获取PCM >>> PCM塞入MediaCodec >>> 从MediaCodec拿到AAC数据 >>> 使用MediaMuxer将AAC数据写入MP4。
      * */
     private suspend fun realStartRecord() = withContext(Dispatchers.IO) {
-        /*val mRecorder = recorder ?: return@withContext
+        val mRecorder = recorder ?: return@withContext
         val codec = encoder ?: return@withContext
 
-        val bufferInfo = MediaCodec.BufferInfo()
-        var audioTrack = -1
+        outputFile.setLength(0) // 清空数据
+
         try {
             //调用start，进入start状态
             mRecorder.startRecording()
-            encoder?.start()
             while (isRecording) {
-                val inputBufferIndex = codec.dequeueInputBuffer( -1)
-                if (inputBufferIndex < 0) {
-                    LogUtil.e(TAG, "inputBufferIndex=$inputBufferIndex, return@withContext")
-                    return@withContext
-                }
-                val inputBuffer = codec.getInputBuffer(inputBufferIndex) ?: continue
-                inputBuffer.clear()
+                // 用 ByteBuffer 会报错，得使用 ByteArray。
+                val inputArray = ByteArray(minBufferSize)
+                val outputArray = ByteArray(minBufferSize)
                 // 从 AudioRecord 获取数据。
-                val readSize = mRecorder.read(inputBuffer, minBufferSize)
-                LogUtil.w(TAG, "写入pcm数据，input buffer size is ${inputBuffer.limit()}, read bytes is $readSize, minBufferSize is $minBufferSize.")
-                //inputBuffer.limit(bytes.size);
-                // 数据塞进 MediaCodec
+                val readSize = mRecorder.read(inputArray, 0, minBufferSize)
+                LogUtil.w(TAG, "写入pcm数据，input buffer, read bytes is $readSize, minBufferSize is $minBufferSize.")
+                // 编码得到 mp3 数据
+                var mp3Size = 0
                 if (readSize <= 0) {
-                    LogUtil.e(TAG, "发送 BUFFER_FLAG_END_OF_STREAM")
-                    codec.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                    isRecording = false
+                    LogUtil.e(TAG, "结束录制")
                 } else {
-                    codec.queueInputBuffer(inputBufferIndex, 0, readSize, System.nanoTime() / 1000, 0)
+                    mp3Size = codec.nativeEncodeInterleaved(inputArray, readSize / 2 / 2, outputArray)
                 }
-                *//*获取编码后的aac数据*//*
-                var outputBufferIndex = try {
-                    codec.dequeueOutputBuffer(bufferInfo, -1)
-                } catch (e: Exception) {
-                    LogUtil.e(TAG, "获取aac数据失败", e)
-                    MediaCodec.INFO_TRY_AGAIN_LATER
+                LogUtil.d(TAG, "获取mp3数据...，inputBuffer.size=$readSize，outputArray=${outputArray.size}")
+                if (outputArray.isNotEmpty() && mp3Size > 0) {
+                    outputFile.seek(outputFile.length())
+                    outputFile.write(outputArray, 0, mp3Size)
+                    LogUtil.d(TAG, "写入aac数据成功...，写入尺寸：$mp3Size")
                 }
-                LogUtil.d(TAG, "获取aac数据...，outputBufferIndex=$outputBufferIndex，bufferInfoSize=${bufferInfo.size}")
-
-                if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    audioTrack = muxer?.addTrack(codec.outputFormat) ?: continue
-                    LogUtil.e(TAG, "format改变, audioTrack: $audioTrack")
-                    if (audioTrack >= 0) {
-                        LogUtil.e(TAG, "音频开始写入文件, audioTrack: $audioTrack")
-                        muxer?.start()
-                    }
-                    continue
-                }
-                if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                    LogUtil.w(TAG, "结束aac音频文件写入...")
-                    break
-                }
-                // 跳过配置相关的数据，只接受音频数据
-                if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) continue
-
-                val outBuffer = codec.getOutputBuffer(outputBufferIndex)
-                if (bufferInfo.size != 0 && outBuffer != null) {
-                    LogUtil.d(TAG, "写入aac数据到文件...，bufferInfo.offset=${bufferInfo.offset}，bufferInfo.size=${bufferInfo.size}")
-                    outBuffer.position(bufferInfo.offset);
-                    outBuffer.limit(bufferInfo.offset + bufferInfo.size);
-                    muxer?.writeSampleData(audioTrack, outBuffer, bufferInfo)
-                }
-                codec.releaseOutputBuffer(outputBufferIndex, false)
-                if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
-                    LogUtil.e(TAG, "END_OF_STREAM, audioTrack: $audioTrack")
-                    break
-                }
-                LogUtil.d(TAG, "写入aac数据成功...")
             }
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
-        }*/
+        }
     }
 
     private fun stopRecord() = lifecycleScope.launch(Dispatchers.Main) {
         isRecording = false
         playAnim(false)
         try {
-            /*LogUtil.w(TAG, "停止录音...")
+            LogUtil.w(TAG, "停止录音...")
             recorder?.stop()
-            encoder?.stop()
-            muxer?.stop()*/
         } catch (e: Exception) {
             LogUtil.e(TAG, e)
         }
