@@ -60,6 +60,15 @@ class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
             AudioPlayManager.init(context)
             val mediaPlayer = AudioPlayManager.mediaPlayer
 
+            mediaPlayer?.setOnCompletionListener {
+                // seekbar 是 500 毫秒回调一次时长，所以结束时已播放时长可能和最大时长有差别，此处手动将已播放时长设置为最大时长
+                binding.tvCurrentTime.text = mediaPlayer.duration.formattedTime()
+                // 结束旋转动画
+                binding.ivRotate.clearAnimation()
+                anim?.cancel()
+                anim = null
+            }
+
             binding.sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     binding.tvCurrentTime.text = mediaPlayer?.currentPosition?.formattedTime()
