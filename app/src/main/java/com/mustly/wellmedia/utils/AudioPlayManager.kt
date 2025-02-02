@@ -59,7 +59,7 @@ object AudioPlayManager {
 
     var visualizer: Visualizer? = null
 
-    fun init(context: Context?) {
+    fun init(context: Context?, needLoop: Boolean = false) {
         val info = findMp3Info(context, Uri.parse(R.raw.never_be_alone.uriPath()))
         val rate = info.sampleRate.let { if (it <= 0) SAMPLE_RATE else it }
         val track = info.voiceTrack
@@ -68,6 +68,7 @@ object AudioPlayManager {
             // todo 这块暂未实现，需要自定义实现 mp3 的解析逻辑，MediaCodec 不支持版权信息，因为 Mp3 有版权相关的内容。
         } else {
             mediaPlayer = MediaPlayer.create(context, R.raw.never_be_alone)
+            mediaPlayer?.isLooping = needLoop
             //mediaPlayer?.prepare()
             playState = AudioTrack.STATE_INITIALIZED
         }

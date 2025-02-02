@@ -26,7 +26,7 @@ class MusicService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
 
-        AudioPlayManager.init(this@MusicService)
+        AudioPlayManager.init(this@MusicService, true)
         createNotificationChannel()
     }
 
