@@ -24,4 +24,5 @@
     <string name="start_record">开始录制</string>
     <string name="stop_record">结束录制</string>
     <string name="initializing">初始化中&#8230;</string>
+    <string name="music_name">播放音乐：Never Be Alone - TheFatRat</string>
 </resources>

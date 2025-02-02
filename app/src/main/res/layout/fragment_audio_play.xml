@@ -7,88 +7,114 @@
 
     </data>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:keepScreenOn="true">
-        
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivRotate"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:scaleType="centerCrop"
-            android:src="@mipmap/bg_audio"
-            app:shapeAppearanceOverlay="@style/circleStyle"
-            />
+        android:layout_height="match_parent">
 
-        <com.mustly.wellmedia.audio.FFTAnimView
-            android:id="@+id/audioVisualizer"
-            android:layout_width="200dp"
-            android:layout_height="50dp"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            />
-
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/fftSwitch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="false"
-            android:text="显示声波振幅图："
-            android:textOn="打开"
-            android:textOff="关闭"
-            android:layout_marginTop="4dp"
-            app:track="@drawable/track"
-            android:thumb="@drawable/thumb"
-            />
-
-        <RelativeLayout
+        <LinearLayout
+            android:id="@+id/llMusic"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="8dp"
-            >
+            android:gravity="center"
+            android:orientation="vertical"
+            android:layout_centerInParent="true"
+            android:keepScreenOn="true">
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvCurrentTime"
-                style="@style/SecondText"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivRotate"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:scaleType="centerCrop"
+                android:src="@mipmap/bg_audio"
+                app:shapeAppearanceOverlay="@style/circleStyle"
+                />
+
+            <com.mustly.wellmedia.audio.FFTAnimView
+                android:id="@+id/audioVisualizer"
+                android:layout_width="200dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/fftSwitch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                tools:text="00:00" />
+                android:checked="false"
+                android:text="显示声波振幅图："
+                android:textOn="打开"
+                android:textOff="关闭"
+                android:layout_marginTop="4dp"
+                app:track="@drawable/track"
+                android:thumb="@drawable/thumb"
+                />
 
-            <SeekBar
-                android:id="@+id/sbProgress"
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_toEndOf="@id/tvCurrentTime"
-                android:layout_toStartOf="@id/tvTimeEnd"
-                android:layout_centerVertical="true"
-                tools:text="00:00" />
+                android:layout_marginHorizontal="8dp"
+                >
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvTimeEnd"
-                style="@style/SecondText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:layout_toStartOf="@id/btnPlay"
-                android:layout_centerVertical="true"
-                tools:text="00:00" />
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvCurrentTime"
+                    style="@style/SecondText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    tools:text="00:00" />
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnPlay"
-                style="@style/SecondText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:text="暂停" />
-        </RelativeLayout>
+                <SeekBar
+                    android:id="@+id/sbProgress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/tvCurrentTime"
+                    android:layout_toStartOf="@id/tvTimeEnd"
+                    android:layout_centerVertical="true"
+                    tools:text="00:00" />
 
-    </LinearLayout>
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvTimeEnd"
+                    style="@style/SecondText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_toStartOf="@id/btnPlay"
+                    tools:text="00:00" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnPlay"
+                    style="@style/SecondText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="暂停" />
+            </RelativeLayout>
+
+        </LinearLayout>
+
+        <!-- 启用音频service的开关 -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/openService"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/llMusic"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="4dp"
+            android:checked="false"
+            android:text="退出页面时启用前台Service："
+            android:textOff="关闭"
+            android:textOn="打开"
+            android:thumb="@drawable/thumb"
+            app:track="@drawable/track" />
+
+    </RelativeLayout>
 </layout>

@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".MediaApplication"
@@ -40,6 +41,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths"/>
         </provider>
+
+        <!-- 未指定 process，默认是本地服务，跟主线程绑定。 -->
+        <service
+            android:name=".audio.MusicService"
+            android:label="@string/app_name"
+            android:icon="@drawable/ic_app_icon"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            />
+
     </application>
 
 </manifest>

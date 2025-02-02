@@ -1,6 +1,7 @@
 package com.mustly.wellmedia.audio
 
 import android.Manifest
+import android.content.Intent
 import android.media.MediaPlayer
 import android.view.View
 import android.view.animation.Animation
@@ -34,6 +35,8 @@ class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
 
     private var isSeekBarChanging = false
     private var scheduledJob: Job? = null
+    // 退出页面时是否启动服务
+    private var startServiceWhenExit = false
 
     override fun initView(rootView: View) {
         lifecycleScope.launch(Dispatchers.Main) {
@@ -98,6 +101,15 @@ class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
                     binding.sbProgress.progress = mediaPlayer?.currentPosition ?: 0
                 }
             }
+
+            initMusicService()
+        }
+    }
+
+    private fun initMusicService() {
+        binding.openService.setOnCheckedChangeListener { buttonView, isChecked ->
+            LogUtil.d(TAG, "openService switch check, now state is $isChecked.")
+            startServiceWhenExit = isChecked
         }
     }
 
@@ -116,6 +128,10 @@ class AudioPlayFragment : BaseBindingFragment<FragmentAudioPlayBinding>() {
             release()
         }
         stopCheckTime()
+        if (startServiceWhenExit) {
+            val serviceIntent = Intent(activity, MusicService::class.java)
+            activity?.startService(serviceIntent)
+        }
     }
 
     private fun tryOpenVisualizer() = lifecycleScope.launch(Dispatchers.Main) {
