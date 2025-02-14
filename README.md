@@ -10,3 +10,5 @@
 - Camera2 拍照实现
 - Camera2 录制MP4实现
 - MediaPlayer播放MP3实现，并自带频域图。
+- AudioRecord+MediaCodec 实现录制声音，并将 PCM 编码为 AAC。
+- AudioRecord+lame so 实现录音，并将 PCM 在 native 层转为 mp3，并存入 mp3 文件。
